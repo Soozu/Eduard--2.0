@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset, DataLoader
 from transformers import RobertaTokenizer, RobertaModel
 from torch.optim import AdamW
 from sklearn.preprocessing import LabelEncoder
@@ -64,8 +64,8 @@ def preprocess_data(df):
     return df, label_encoder
 
 
-# Function to extract city and category information from user query
-def extract_query_info(query_text, available_cities=None, available_categories=None):
+    # Function to extract city and category information from user query
+def extract_query_info(query_text, available_cities, available_categories):
     """
     Extract city and category information from a user query.
 
@@ -77,14 +77,8 @@ def extract_query_info(query_text, available_cities=None, available_categories=N
     Returns:
         tuple: (extracted_city, extracted_category, cleaned_query)
     """
-    if available_cities is None:
-        available_cities = []
-    if available_categories is None:
-        available_categories = []
-        
     query_lower = query_text.lower()
-    # Simple word tokenization without NLTK
-    words = query_lower.split()
+    words = word_tokenize(query_lower)
 
     # Initialize variables
     extracted_city = None
@@ -449,7 +443,7 @@ def main():
         model,
         embeddings,
         df,
-        city=city_query,
+        city=city_query,  #
         top_n=3
     )
 

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>WerTigo - Ticket Tracker</title>
+
+    <!-- FONT AWESOME -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" class="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Main CSS-->
+    <link rel="stylesheet" href="style.css">
+    <!-- Tracker CSS -->
+    <link rel="stylesheet" href="tracker.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body class="bdy">
+    <section class="index" id="index">
+        <header class="header">
+            <a href="index.html" class="logo" id="menu"><img src="LOGO.png" class="log"><span> WerTigo </span></a>
+           
+            <i class="fa-solid fa-bars" id="menu-icon"></i>
+            <nav class="navbar">
+               <a href="index.html"><span>Home </span></a>
+               <a href="index.html#about"> <span>About us</span></a>
+               <a href="index.html#services"> <span>Services</span> </a>
+               <a href="index.html#contact"> <span>Contact</span></a>
+               <a href="tracker.html" class="active"><span>Ticket Tracker</span></a>
+            </nav>
+        </header>
+    </section>
+
+    <div class="ticket-container">
+        <div class="tab-bar">
+            <div class="tab active" data-tab="search">Track Your Ticket</div>
+            <div class="tab" data-tab="email">Your Tickets</div>
+        </div>
+
+        <div class="tab-content active" id="search-tab">
+            <div class="ticket-search">
+                <h2 class="search-heading">Track Your Travel Plans</h2>
+                <p>Enter your ticket ID to view your travel details and status.</p>
+                
+                <div class="search-fields">
+                    <div class="search-field">
+                        <input type="text" id="ticketIdInput" placeholder="Enter your ticket ID (e.g., WTO-ABC123)">
+                    </div>
+                    <div class="search-field">
+                        <input type="email" id="emailInput" placeholder="Enter your email (optional)">
+                    </div>
+                    <button class="search-button" id="searchButton">
+                        <i class="fas fa-search"></i> Track Ticket
+                    </button>
+                </div>
+                
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="email-tab">
+            <div class="ticket-search">
+                <h2 class="search-heading">Find All Your Tickets</h2>
+                <p>Enter your email to view all your travel tickets.</p>
+                
+                <div class="search-fields">
+                    <div class="search-field">
+                        <input type="email" id="emailListInput" placeholder="Enter your email address">
+                    </div>
+                    <button class="search-button" id="listButton">
+                        <i class="fas fa-list"></i> Find Tickets
+                    </button>
+                </div>
+                <div class="error-message" id="listErrorMessage"></div>
+            </div>
+
+            <div class="ticket-list" id="ticketList">
+                <h3 class="tickets-heading">Your Travel Tickets</h3>
+                <div id="ticketCards"></div>
+            </div>
+        </div>
+
+        <div class="ticket-details" id="ticketDetails">
+            <div class="ticket-header">
+                <div class="ticket-id" id="displayTicketId">WTO-ABC123</div>
+                <div class="ticket-status status-active" id="displayStatus">Active</div>
+            </div>
+
+            <div class="ticket-info">
+                <div class="info-item">
+                    <div class="info-label">Destination</div>
+                    <div class="info-value" id="displayDestination">Palawan, Philippines</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Travel Dates</div>
+                    <div class="info-value" id="displayDates">Jun 15, 2023 - Jun 20, 2023</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Number of Travelers</div>
+                    <div class="info-value" id="displayTravelers">2</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Budget</div>
+                    <div class="info-value" id="displayBudget">₱15,000</div>
+                </div>
+            </div>
+
+            <div id="mapContainer"></div>
+
+            <h3 class="itinerary-heading">Itinerary</h3>
+            <div id="itineraryContainer">
+                <!-- Itinerary content will be populated here -->
+            </div>
+
+            <div class="ticket-actions">
+                <button class="action-button print-button" id="printButton">
+                    <i class="fas fa-print"></i> Print Ticket
+                </button>
+                <button class="action-button delete-button" id="deleteButton">
+                    <i class="fas fa-trash-alt"></i> Delete Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        // DOM Elements
+        const searchButton = document.getElementById('searchButton');
+        const ticketIdInput = document.getElementById('ticketIdInput');
+        const emailInput = document.getElementById('emailInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const ticketDetails = document.getElementById('ticketDetails');
+        
+        const listButton = document.getElementById('listButton');
+        const emailListInput = document.getElementById('emailListInput');
+        const listErrorMessage = document.getElementById('listErrorMessage');
+        const ticketList = document.getElementById('ticketList');
+        const ticketCards = document.getElementById('ticketCards');
+        
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        const printButton = document.getElementById('printButton');
+        const deleteButton = document.getElementById('deleteButton');
+        
+        // API endpoint URL
+        const API_URL = 'http://localhost:5000/api';
+        
+        // Tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab') + '-tab';
+                document.getElementById(tabId).classList.add('active');
+                
+                // Clear any displayed data or errors
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                listErrorMessage.style.display = 'none';
+                ticketDetails.style.display = 'none';
+            });
+        });
+        
+        // Search for a ticket
+        searchButton.addEventListener('click', async () => {
+            const ticketId = ticketIdInput.value.trim();
+            const email = emailInput.value.trim();
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            ticketDetails.style.display = 'none';
+            
+            if (!ticketId) {
+                errorMessage.textContent = 'Please enter a ticket ID.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // Prepare URL with query parameters
+                let url = `${API_URL}/tickets/${ticketId}`;
+                if (email) {
+                    url += `?email=${encodeURIComponent(email)}`;
+                }
+                
+                // Fetch ticket details
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Show success message
+                    successMessage.textContent = 'Ticket found!';
+                    successMessage.style.display = 'block';
+                    
+                    // Display ticket details
+                    displayTicketDetails(data.ticket);
+                } else {
+                    // Show error message
+                    errorMessage.textContent = data.error || 'Failed to find ticket. Please check your ticket ID.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error fetching ticket:', error);
+                errorMessage.textContent = 'An error occurred while fetching the ticket. Please try again.';
+                errorMessage.style.display = 'block';
+            }
+        });
+        
+        // Function to display ticket details
+        function displayTicketDetails(ticket) {
+            // Show the ticket details section
+            ticketDetails.style.display = 'block';
+            
+            // Set ticket ID and status
+            document.getElementById('displayTicketId').textContent = ticket.ticket_id;
+            
+            const statusElement = document.getElementById('displayStatus');
+            statusElement.textContent = ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1);
+            
+            // Remove all status classes
+            statusElement.className = 'ticket-status';
+            // Add specific status class
+            statusElement.classList.add(`status-${ticket.status.toLowerCase()}`);
+            
+            // Set trip details
+            const trip = ticket.trip || {};
+            document.getElementById('displayDestination').textContent = ticket.destination || trip.destination || 'Not specified';
+            document.getElementById('displayDates').textContent = ticket.travel_dates || trip.travel_dates || 'Not specified';
+            document.getElementById('displayTravelers').textContent = ticket.travelers || trip.travelers || '1';
+            document.getElementById('displayBudget').textContent = ticket.budget || trip.budget || 'Not specified';
+            
+            // Display itinerary
+            displayItinerary(trip);
+            
+            // Initialize map if coordinates are available
+            initializeMap(trip);
+            
+            // Store ticket ID and email for delete operation
+            deleteButton.setAttribute('data-ticket-id', ticket.ticket_id);
+            deleteButton.setAttribute('data-email', emailInput.value.trim());
+        }
+        
+        // Function to display itinerary
+        function displayItinerary(trip) {
+            const itineraryContainer = document.getElementById('itineraryContainer');
+            itineraryContainer.innerHTML = '';
+            
+            if (trip && trip.itinerary && trip.itinerary.length > 0) {
+                trip.itinerary.forEach(day => {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'day-container';
+                    
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'day-header';
+                    dayHeader.textContent = `Day ${day.day}`;
+                    dayElement.appendChild(dayHeader);
+                    
+                    const placesList = document.createElement('ul');
+                    placesList.className = 'day-places';
+                    
+                    if (day.places && day.places.length > 0) {
+                        day.places.forEach(place => {
+                            const placeItem = document.createElement('li');
+                            placeItem.className = 'place-item';
+                            
+                            const placeName = document.createElement('span');
+                            placeName.className = 'place-name';
+                            placeName.textContent = place.name;
+                            
+                            const placeCategory = document.createElement('span');
+                            placeCategory.className = 'place-category';
+                            placeCategory.textContent = `(${place.category})`;
+                            
+                            placeItem.appendChild(placeName);
+                            placeItem.appendChild(placeCategory);
+                            placesList.appendChild(placeItem);
+                        });
+                    } else {
+                        const noPlaces = document.createElement('li');
+                        noPlaces.textContent = 'No activities planned for this day.';
+                        placesList.appendChild(noPlaces);
+                    }
+                    
+                    dayElement.appendChild(placesList);
+                    itineraryContainer.appendChild(dayElement);
+                });
+            } else {
+                itineraryContainer.innerHTML = '<p>No itinerary information available.</p>';
+            }
+        }
+        
+        // Function to initialize map
+        function initializeMap(trip) {
+            const mapContainer = document.getElementById('mapContainer');
+            
+            // Default location (Philippines)
+            let centerLat = 12.8797;
+            let centerLng = 121.7740;
+            let zoomLevel = 6;
+            
+            // Check for existing map instance and remove it
+            if (window.ticketMap) {
+                window.ticketMap.remove();
+            }
+            
+            // Create new map
+            window.ticketMap = L.map('mapContainer').setView([centerLat, centerLng], zoomLevel);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: 'Map data © OpenStreetMap contributors'
+            }).addTo(window.ticketMap);
+            
+            // If the trip has coordinates, add markers
+            if (trip && trip.itinerary && trip.itinerary.length > 0) {
+                const markers = [];
+                
+                trip.itinerary.forEach(day => {
+                    if (day.places && day.places.length > 0) {
+                        day.places.forEach(place => {
+                            if (place.latitude && place.longitude) {
+                                const marker = L.marker([place.latitude, place.longitude])
+                                    .addTo(window.ticketMap)
+                                    .bindPopup(`<b>${place.name}</b><br>${place.category}`);
+                                markers.push([place.latitude, place.longitude]);
+                            }
+                        });
+                    }
+                });
+                
+                // If we have markers, fit the map to show all of them
+                if (markers.length > 0) {
+                    window.ticketMap.fitBounds(markers);
+                }
+            }
+        }
+        
+        // Get list of tickets by email
+        listButton.addEventListener('click', async () => {
+            const email = emailListInput.value.trim();
+            
+            // Clear previous messages and content
+            listErrorMessage.style.display = 'none';
+            ticketList.style.display = 'none';
+            ticketDetails.style.display = 'none';
+            
+            if (!email) {
+                listErrorMessage.textContent = 'Please enter your email address.';
+                listErrorMessage.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // Fetch list of tickets
+                const response = await fetch(`${API_URL}/tickets?email=${encodeURIComponent(email)}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Show the ticket list
+                    ticketList.style.display = 'block';
+                    
+                    // Display list of tickets
+                    displayTicketList(data.tickets, email);
+                } else {
+                    // Show error message
+                    listErrorMessage.textContent = data.error || 'Failed to find tickets for this email.';
+                    listErrorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error fetching tickets:', error);
+                listErrorMessage.textContent = 'An error occurred while fetching tickets. Please try again.';
+                listErrorMessage.style.display = 'block';
+            }
+        });
+        
+        // Function to display list of tickets
+        function displayTicketList(tickets, email) {
+            ticketCards.innerHTML = '';
+            
+            if (tickets && tickets.length > 0) {
+                tickets.forEach(ticket => {
+                    const card = document.createElement('div');
+                    card.className = 'ticket-card';
+                    card.addEventListener('click', () => {
+                        // Fill the form in the search tab and trigger search
+                        ticketIdInput.value = ticket.ticket_id;
+                        emailInput.value = email;
+                        
+                        // Switch to search tab
+                        tabs[0].click();
+                        
+                        // Trigger search
+                        searchButton.click();
+                    });
+                    
+                    const header = document.createElement('div');
+                    header.className = 'ticket-card-header';
+                    
+                    const id = document.createElement('div');
+                    id.className = 'card-ticket-id';
+                    id.textContent = ticket.ticket_id;
+                    
+                    const status = document.createElement('div');
+                    status.className = `card-status status-${ticket.status.toLowerCase()}`;
+                    status.textContent = ticket.status;
+                    
+                    header.appendChild(id);
+                    header.appendChild(status);
+                    
+                    const destination = document.createElement('div');
+                    destination.className = 'card-destination';
+                    destination.textContent = ticket.destination || 'Unknown Destination';
+                    
+                    const dates = document.createElement('div');
+                    dates.className = 'card-dates';
+                    dates.textContent = ticket.travel_dates || 'Dates not specified';
+                    
+                    card.appendChild(header);
+                    card.appendChild(destination);
+                    card.appendChild(dates);
+                    
+                    // Add "days until trip" if available
+                    if (ticket.days_until_trip !== undefined) {
+                        const countdown = document.createElement('div');
+                        countdown.className = 'trip-countdown';
+                        countdown.textContent = ticket.days_until_trip === 0 
+                            ? 'Today!' 
+                            : `${ticket.days_until_trip} days until your trip!`;
+                        card.appendChild(countdown);
+                    }
+                    
+                    ticketCards.appendChild(card);
+                });
+            } else {
+                // No tickets found
+                ticketCards.innerHTML = `
+                    <div class="no-tickets">
+                        <p>No tickets found for this email address.</p>
+                        <p>Try creating a new trip first!</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Print ticket
+        printButton.addEventListener('click', () => {
+            window.print();
+        });
+        
+        // Delete ticket
+        deleteButton.addEventListener('click', async () => {
+            const ticketId = deleteButton.getAttribute('data-ticket-id');
+            const email = deleteButton.getAttribute('data-email');
+            
+            if (!ticketId) return;
+            
+            if (confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
+                try {
+                    // Delete the ticket
+                    const response = await fetch(`${API_URL}/tickets/${ticketId}/delete?email=${encodeURIComponent(email)}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        successMessage.textContent = 'Ticket successfully deleted.';
+                        successMessage.style.display = 'block';
+                        ticketDetails.style.display = 'none';
+                        
+                        // Clear inputs
+                        ticketIdInput.value = '';
+                    } else {
+                        errorMessage.textContent = data.error || 'Failed to delete ticket.';
+                        errorMessage.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Error deleting ticket:', error);
+                    errorMessage.textContent = 'An error occurred while deleting the ticket. Please try again.';
+                    errorMessage.style.display = 'block';
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

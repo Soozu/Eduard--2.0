@@ -16,13 +16,32 @@ import time
 import database as db
 from auth_routes import auth_bp
 import re
+import importlib.util
+import smtplib
+import random
+import string
+from email_service import send_ticket_email
 
 # Download NLTK data
 nltk.download('punkt')
 nltk.download('punkt_tab')
 
-# Import from revised.py
-from revised import DestinationRecommender, load_data, preprocess_data, extract_query_info
+# Import from revised.py using importlib to avoid keyword issue with try.py
+try:
+    # Use importlib.util to load the module without using the 'try' keyword
+    spec = importlib.util.spec_from_file_location("travel_model", "try.py")
+    travel_model = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(travel_model)
+    
+    # Import the required components
+    DestinationRecommender = travel_model.DestinationRecommender
+    extract_query_info = travel_model.extract_query_info
+    load_data = travel_model.load_data
+    preprocess_data = travel_model.preprocess_data
+except Exception as e:
+    print(f"Error importing from try.py: {e}")
+    print("Make sure try.py contains the required components.")
+    raise
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -82,7 +101,8 @@ def load_model():
 
 # Load embeddings from file or create them
 def get_embeddings(model, df):
-    embeddings_path = './model_output/embeddings.npy'
+    # Use the updated destination embeddings file
+    embeddings_path = './model_output/destination_embeddings.npy'
     
     try:
         if os.path.exists(embeddings_path):
@@ -582,13 +602,28 @@ def recommend():
     try:
         # Check for required components
         if model is None:
-            return jsonify({'error': 'Model not loaded. Please check server logs for details.'}), 500
+            print("Error: Model not loaded")
+            return jsonify({
+                'error': 'Model not loaded. Please check server logs for details.',
+                'is_conversation': True,
+                'message': "I'm sorry, but my recommendation engine is not available right now. Please try again later."
+            }), 500
         
         if embeddings is None or len(embeddings) == 0:
-            return jsonify({'error': 'Embeddings not available. Please check server logs for details.'}), 500
+            print("Error: Embeddings not available")
+            return jsonify({
+                'error': 'Embeddings not available. Please check server logs for details.',
+                'is_conversation': True,
+                'message': "I'm sorry, but my recommendation engine is not properly configured. Please try again later."
+            }), 500
         
         if df is None or len(df) == 0:
-            return jsonify({'error': 'Destination data not available.'}), 500
+            print("Error: Destination data not available")
+            return jsonify({
+                'error': 'Destination data not available.',
+                'is_conversation': True,
+                'message': "I don't have any destination data available right now. Please try again later."
+            }), 500
         
         # Get request data
         data = request.get_json()
@@ -600,16 +635,20 @@ def recommend():
         
         if not query_text:
             return jsonify({'error': 'Query is required'}), 400
+
+        print(f"Processing query: '{query_text}' for session: {session_id}")
         
         # Check cache first for exact or similar queries
         cached_result = knowledge_cache.get(query_text)
         if cached_result:
+            print(f"Found exact cache match for query: '{query_text}'")
             # If we have exact match, return the cached result
             return jsonify(cached_result)
         
         # Try similar query
         similar_result = knowledge_cache.get_similar_query(query_text)
         if similar_result:
+            print(f"Found similar cache match for query: '{query_text}'")
             # If we have similar match, we'll use it but might want to refresh it
             return jsonify(similar_result)
         
@@ -621,8 +660,12 @@ def recommend():
         help_phrases = ['help', 'how does this work', 'what can you do', 'what do you do']
         thanks_phrases = ['thanks', 'thank you', 'thx', 'appreciate it']
         
-        # Get conversation context
-        conversation_context = knowledge_cache.get_conversation_context(session_id, query_text)
+        # Get conversation context safely
+        try:
+            conversation_context = knowledge_cache.get_conversation_context(session_id, query_text)
+        except Exception as e:
+            print(f"Error getting conversation context: {e}")
+            conversation_context = {}
         
         # Check if this is a greeting or basic conversation
         if any(greeting == query_lower for greeting in greetings):
@@ -652,24 +695,31 @@ def recommend():
             }
             
             # Add to cache and conversation history
-            knowledge_cache.add(query_text, response, session_id)
-            knowledge_cache.add_to_conversation(session_id, query_text, message)
+            try:
+                knowledge_cache.add(query_text, response, session_id)
+                knowledge_cache.add_to_conversation(session_id, query_text, message)
+            except Exception as e:
+                print(f"Error updating knowledge cache: {e}")
             
             return jsonify(response)
         elif any(phrase in query_lower for phrase in help_phrases):
-            # Consider conversation history for help message
-            message = "I can help you find interesting places to visit based on your preferences."
+            # Simple help message as fallback in case of errors
+            message = "I can help you find interesting places to visit based on your preferences. You can ask me things like 'Show me beach resorts' or 'I want to visit historical sites'."
             
-            # If they have preferred categories or cities, mention them
-            if 'preferences' in conversation_context:
-                if 'categories' in conversation_context['preferences'] and conversation_context['preferences']['categories']:
-                    categories = conversation_context['preferences']['categories']
-                    message += f" I notice you like {', '.join(categories[:2])}. You can ask about these specifically."
-                elif 'cities' in conversation_context['preferences'] and conversation_context['preferences']['cities']:
-                    cities = conversation_context['preferences']['cities']
-                    message += f" You seem interested in {', '.join(cities[:2])}. You can ask about destinations there."
-            
-            message += " You can ask me things like 'Show me beach resorts in Palawan' or 'I want to visit historical sites' or simply describe what you're looking for like 'I want a relaxing nature retreat with good views'."
+            # Try to provide a more personalized help message if context is available
+            try:
+                # Consider conversation history for help message
+                if 'preferences' in conversation_context:
+                    if 'categories' in conversation_context['preferences'] and conversation_context['preferences']['categories']:
+                        categories = conversation_context['preferences']['categories']
+                        message += f" I notice you like {', '.join(categories[:2])}. You can ask about these specifically."
+                    elif 'cities' in conversation_context['preferences'] and conversation_context['preferences']['cities']:
+                        cities = conversation_context['preferences']['cities']
+                        message += f" You seem interested in {', '.join(cities[:2])}. You can ask about destinations there."
+                
+                message += " You can ask me things like 'Show me beach resorts in Palawan' or 'I want to visit historical sites' or simply describe what you're looking for like 'I want a relaxing nature retreat with good views'."
+            except Exception as e:
+                print(f"Error generating personalized help message: {e}")
             
             response = {
                 'is_conversation': True,
@@ -677,24 +727,34 @@ def recommend():
             }
             
             # Add to cache and conversation history
-            knowledge_cache.add(query_text, response, session_id)
-            knowledge_cache.add_to_conversation(session_id, query_text, message)
+            try:
+                knowledge_cache.add(query_text, response, session_id)
+                knowledge_cache.add_to_conversation(session_id, query_text, message)
+            except Exception as e:
+                print(f"Error updating knowledge cache: {e}")
             
             return jsonify(response)
         elif any(phrase in query_lower for phrase in thanks_phrases):
-            # Personalize thanks response based on conversation history
-            sentiment = 0.5  # Default positive sentiment
+            # Simple thanks response as fallback
+            message = "You're welcome! Is there anything else you'd like to know about destinations or travel planning?"
             
-            if 'current_query' in conversation_context and 'sentiment' in conversation_context['current_query']:
-                sentiment = conversation_context['current_query']['sentiment']
-            
-            # More enthusiastic for positive sentiment
-            if sentiment > 0.5:
-                message = "You're very welcome! I'm really glad I could help. Is there anything else you'd like to know about destinations or travel planning?"
-            elif sentiment > 0:
-                message = "You're welcome! Is there anything else you'd like to know about destinations or travel planning?"
-            else:
-                message = "You're welcome. I hope I was able to help. Let me know if you need anything else for your travel plans."
+            # Try to provide a more personalized thanks message if sentiment data is available
+            try:
+                # Personalize thanks response based on conversation history
+                sentiment = 0.5  # Default positive sentiment
+                
+                if 'current_query' in conversation_context and 'sentiment' in conversation_context['current_query']:
+                    sentiment = conversation_context['current_query']['sentiment']
+                
+                # More enthusiastic for positive sentiment
+                if sentiment > 0.5:
+                    message = "You're very welcome! I'm really glad I could help. Is there anything else you'd like to know about destinations or travel planning?"
+                elif sentiment > 0:
+                    message = "You're welcome! Is there anything else you'd like to know about destinations or travel planning?"
+                else:
+                    message = "You're welcome. I hope I was able to help. Let me know if you need anything else for your travel plans."
+            except Exception as e:
+                print(f"Error generating personalized thanks message: {e}")
             
             response = {
                 'is_conversation': True,
@@ -702,249 +762,236 @@ def recommend():
             }
             
             # Add to cache and conversation history
-            knowledge_cache.add(query_text, response, session_id)
-            knowledge_cache.add_to_conversation(session_id, query_text, message)
+            try:
+                knowledge_cache.add(query_text, response, session_id)
+                knowledge_cache.add_to_conversation(session_id, query_text, message)
+            except Exception as e:
+                print(f"Error updating knowledge cache: {e}")
             
             return jsonify(response)
         
-        # Handle follow-up questions by checking conversation continuity
-        if session_id and 'current_query' in conversation_context and conversation_context['current_query'].get('topic_continuity', False):
-            # This might be a follow-up question
-            # Check for referential phrases
-            referential_phrases = ['there', 'that place', 'those places', 'this destination', 'it', 'them']
+        # Process query text as a fallback if recommendation or advanced features fail
+        simple_response = None
+        
+        try:
+            # Try the basic recommendation approach first
+            print(f"Attempting to get simple recommendations for: '{query_text}'")
+            simple_response = recommend_internal(query_text)
             
-            if any(phrase in query_lower for phrase in referential_phrases):
-                # This is likely a follow-up question about previously mentioned places
-                if 'last_response' in conversation_context and 'recommendations' in conversation_context['last_response']:
-                    # Use the previous context to enhance the current query
-                    if 'last_city' in conversation_context:
-                        query_text += f" in {conversation_context['last_city']}"
-                        
-                    if 'last_category' in conversation_context:
-                        query_text += f" {conversation_context['last_category']}"
+            if simple_response and 'recommendations' in simple_response and simple_response['recommendations']:
+                print(f"Found {len(simple_response['recommendations'])} simple recommendations")
+                return jsonify(simple_response)
+        except Exception as e:
+            print(f"Error in simple recommendation: {e}")
+            # Continue with advanced recommendations
+        
+        # Full ML-based recommendation process starts here
+        print("Proceeding with full ML-based recommendation process")
         
         # Get enhanced understanding of the query
-        query_understanding = understand_query(query_text, session_id)
+        try:
+            query_understanding = understand_query(query_text, session_id)
+        except Exception as e:
+            print(f"Error in query understanding: {e}")
+            # Create a simple understanding as fallback
+            query_understanding = {
+                'original_query': query_text,
+                'cleaned_query': query_text,
+                'detected_intent': 'find_destination',
+                'city': None,
+                'category': None,
+                'budget_preference': None,
+                'trip_type': None,
+                'user_context': {}
+            }
         
-        # Enhance understanding with conversation context
-        if 'preferences' in conversation_context:
-            # Use category preferences if query doesn't specify one
-            if not query_understanding['category'] and 'categories' in conversation_context['preferences']:
-                categories = conversation_context['preferences']['categories']
-                if categories:
-                    # Only use the preference if it's somewhat related to the query
-                    topics = knowledge_cache._extract_topics(query_text)
-                    if any(topic in ['destination', 'activities', 'cultural', 'nature'] for topic in topics):
-                        query_understanding['category'] = categories[0]
+        # Process the query with robust error handling
+        try:
+            # Tokenize and encode the query
+            query_encoding = tokenizer(
+                query_understanding['cleaned_query'],
+                add_special_tokens=True,
+                max_length=512,
+                return_token_type_ids=False,
+                padding='max_length',
+                truncation=True,
+                return_attention_mask=True,
+                return_tensors='pt'
+            ).to(device)
             
-            # Use city preferences if query doesn't specify one
-            if not query_understanding['city'] and 'cities' in conversation_context['preferences']:
-                cities = conversation_context['preferences']['cities']
-                if cities:
-                    # Only use the preference if it's somewhat related to the query
-                    topics = knowledge_cache._extract_topics(query_text)
-                    if any(topic in ['destination', 'planning'] for topic in topics):
-                        query_understanding['city'] = cities[0]
-        
-        # Process the query
-        query_encoding = tokenizer(
-            query_understanding['cleaned_query'],
-            add_special_tokens=True,
-            max_length=512,
-            return_token_type_ids=False,
-            padding='max_length',
-            truncation=True,
-            return_attention_mask=True,
-            return_tensors='pt'
-        ).to(device)
-        
-        # Get query embedding
-        with torch.no_grad():
-            outputs = model.roberta(
-                input_ids=query_encoding['input_ids'],
-                attention_mask=query_encoding['attention_mask']
-            )
-            query_embedding = outputs.last_hidden_state[:, 0, :].cpu().numpy()
-        
-        # Calculate similarities
-        similarities = cosine_similarity(query_embedding, embeddings)[0]
-        similarity_series = pd.Series(similarities, index=df.index)
-        
-        # Apply filters
-        filtered_df = df.copy()
-        
-        if query_understanding['city']:
-            city_mask = filtered_df['city'].str.lower() == query_understanding['city'].lower()
-            if any(city_mask):
-                filtered_df = filtered_df[city_mask]
-        
-        if query_understanding['category']:
-            category_mask = filtered_df['category'].str.lower() == query_understanding['category'].lower()
-            if any(category_mask):
-                filtered_df = filtered_df[category_mask]
-        
-        # Apply budget filter if provided
-        if query_understanding['budget_preference']:
-            # This requires having budget data in the dataset
-            # For now, just demonstrate the concept
-            if 'price_level' in filtered_df.columns:
-                if query_understanding['budget_preference'] == 'low':
-                    filtered_df = filtered_df[filtered_df['price_level'] <= 2]
-                elif query_understanding['budget_preference'] == 'medium':
-                    filtered_df = filtered_df[(filtered_df['price_level'] > 2) & (filtered_df['price_level'] <= 3)]
-                elif query_understanding['budget_preference'] == 'high':
-                    filtered_df = filtered_df[filtered_df['price_level'] > 3]
-        
-        # Apply trip type filter if provided
-        if query_understanding['trip_type']:
-            # Use more advanced filtering based on conversation context
-            if session_id and 'current_query' in conversation_context and 'sentiment' in conversation_context['current_query']:
-                sentiment = conversation_context['current_query']['sentiment']
-                
-                # Adjust filters based on sentiment
-                # For positive sentiment, make filters more inclusive
-                # For negative sentiment, make filters more strict
-                strictness = 0.5 - (sentiment * 0.3)  # Scale sentiment effect
-                
-                if query_understanding['trip_type'] == 'adventure':
-                    keywords = 'adventure|hiking|trekking|outdoor|extreme'
-                    if sentiment > 0:
-                        keywords += '|active|exciting|challenging'
-                    mask = filtered_df['description'].str.contains(keywords, case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'relaxation':
-                    keywords = 'relax|peaceful|quiet|calm|spa|retreat'
-                    if sentiment > 0:
-                        keywords += '|serene|tranquil|peaceful'
-                    mask = filtered_df['description'].str.contains(keywords, case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'cultural':
-                    keywords = 'culture|history|historical|museum|tradition|heritage'
-                    if sentiment > 0:
-                        keywords += '|architectural|authentic'
-                    mask = filtered_df['description'].str.contains(keywords, case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'family':
-                    keywords = 'family|kids|children|family-friendly'
-                    if sentiment > 0:
-                        keywords += '|fun|entertaining|playground'
-                    mask = filtered_df['description'].str.contains(keywords, case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'romantic':
-                    keywords = 'romantic|couple|honeymoon|anniversary'
-                    if sentiment > 0:
-                        keywords += '|intimate|charming|memorable'
-                    mask = filtered_df['description'].str.contains(keywords, case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-            else:
-                # Default filtering without sentiment context
-                if query_understanding['trip_type'] == 'adventure':
-                    mask = filtered_df['description'].str.contains('adventure|hiking|trekking|outdoor|extreme', case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'relaxation':
-                    mask = filtered_df['description'].str.contains('relax|peaceful|quiet|calm|spa|retreat', case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'cultural':
-                    mask = filtered_df['description'].str.contains('culture|history|historical|museum|tradition|heritage', case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'family':
-                    mask = filtered_df['description'].str.contains('family|kids|children|family-friendly', case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-                elif query_understanding['trip_type'] == 'romantic':
-                    mask = filtered_df['description'].str.contains('romantic|couple|honeymoon|anniversary', case=False, na=False)
-                    if any(mask):
-                        filtered_df = filtered_df[mask]
-        
-        # Get filtered similarities
-        filtered_indices = filtered_df.index
-        filtered_similarities = similarity_series[filtered_indices]
-        
-        # Get top recommendations
-        top_n = 3
-        if len(filtered_similarities) == 0:
-            response = {'error': 'No destinations found matching your criteria'}
-            return jsonify(response), 404
-        
-        top_indices = filtered_similarities.nlargest(min(top_n, len(filtered_similarities))).index
-        top_recommendations = []
-        
-        for idx in top_indices:
-            row = df.loc[idx]
-            # Convert similarity score to star rating (1-5 stars)
-            rating = min(5, max(1, int(similarity_series[idx] * 5)))
+            # Get query embedding
+            with torch.no_grad():
+                outputs = model.roberta(
+                    input_ids=query_encoding['input_ids'],
+                    attention_mask=query_encoding['attention_mask']
+                )
+                query_embedding = outputs.last_hidden_state[:, 0, :].cpu().numpy()
             
-            top_recommendations.append({
-                'name': row['name'],
-                'city': row['city'],
-                'category': row['category'],
-                'description': row['description'],
-                'similarity': float(similarity_series[idx]),  # Keep original for sorting
-                'rating': rating  # Add star rating (1-5)
-            })
-        
-        # Prepare response
-        response = {
-            'recommendations': top_recommendations,
-            'detected_city': query_understanding['city'],
-            'detected_category': query_understanding['category'],
-            'query_understanding': {k: v for k, v in query_understanding.items() if k != 'user_context'}  # Don't return user context
-        }
-        
-        # Add continuity prompts based on conversation history
-        if session_id and conversation_context:
-            # Generate follow-up questions based on the recommendations and conversation history
-            follow_up_suggestions = generate_follow_up_suggestions(top_recommendations, conversation_context)
-            if follow_up_suggestions:
-                response['follow_up_suggestions'] = follow_up_suggestions
-        
-        # Save to cache for future use
-        knowledge_cache.add(query_text, response, session_id)
-        
-        # If there's a session, update the context
-        if session_id:
-            context_update = {
-                'last_query': query_text,
-                'last_response': response,
-                'last_response_timestamp': time.time()
+            # Calculate similarities
+            similarities = cosine_similarity(query_embedding, embeddings)[0]
+            similarity_series = pd.Series(similarities, index=df.index)
+            
+            # Apply filters
+            filtered_df = df.copy()
+            
+            # Safe city filtering
+            if query_understanding['city'] and isinstance(query_understanding['city'], str): 
+                try:
+                    city_mask = filtered_df['city'].str.lower() == query_understanding['city'].lower()
+                    if any(city_mask):
+                        filtered_df = filtered_df[city_mask]
+                except Exception as e:
+                    print(f"Error filtering by city: {e}")
+            
+            # Safe category filtering
+            if query_understanding['category'] and isinstance(query_understanding['category'], str):
+                try:
+                    category_mask = filtered_df['category'].str.lower() == query_understanding['category'].lower()
+                    if any(category_mask):
+                        filtered_df = filtered_df[category_mask]
+                except Exception as e:
+                    print(f"Error filtering by category: {e}")
+            
+            # Get filtered similarities
+            filtered_indices = filtered_df.index
+            filtered_similarities = similarity_series[filtered_indices]
+            
+            # Get top recommendations
+            top_n = 3
+            if len(filtered_similarities) == 0:
+                # Fall back to simple response or return "no results" message
+                if simple_response and 'recommendations' in simple_response and simple_response['recommendations']:
+                    return jsonify(simple_response)
+                
+                response = {
+                    'is_conversation': True,
+                    'message': "I couldn't find any destinations matching your criteria. Can you try a different search or be more general?"
+                }
+                return jsonify(response)
+            
+            # Get top indices safely
+            top_indices = filtered_similarities.nlargest(min(top_n, len(filtered_similarities))).index
+            top_recommendations = []
+            
+            for idx in top_indices:
+                try:
+                    row = df.loc[idx]
+                    # Convert similarity score to star rating (1-5 stars)
+                    rating = min(5, max(1, int(similarity_series[idx] * 5)))
+                    
+                    # Safely extract values with defaults for missing data
+                    name = row.get('name', 'Unknown Destination')
+                    city = row.get('city', 'Unknown Location')
+                    category = row.get('category', 'Destination')
+                    description = row.get('description', 'No description available.')
+                    
+                    top_recommendations.append({
+                        'name': name,
+                        'city': city,
+                        'category': category,
+                        'description': description,
+                        'similarity': float(similarity_series[idx]),  # Keep original for sorting
+                        'rating': rating  # Add star rating (1-5)
+                    })
+                except Exception as e:
+                    print(f"Error processing recommendation at index {idx}: {e}")
+                    # Skip this recommendation and continue
+            
+            # If we couldn't process any recommendations, use the simple response or return error
+            if not top_recommendations:
+                if simple_response and 'recommendations' in simple_response and simple_response['recommendations']:
+                    return jsonify(simple_response)
+                
+                response = {
+                    'is_conversation': True,
+                    'message': "I had trouble processing recommendations for your query. Can you try something simpler?"
+                }
+                return jsonify(response)
+            
+            # Prepare response
+            response = {
+                'recommendations': top_recommendations,
+                'detected_city': query_understanding.get('city'),
+                'detected_category': query_understanding.get('category'),
+                'query_understanding': {k: v for k, v in query_understanding.items() if k != 'user_context'}  # Don't return user context
             }
             
-            if query_understanding['city']:
-                context_update['last_city'] = query_understanding['city']
+            # Add follow-up suggestions if available
+            try:
+                if session_id and conversation_context:
+                    # Generate follow-up questions
+                    follow_up_suggestions = generate_follow_up_suggestions(top_recommendations, conversation_context)
+                    if follow_up_suggestions:
+                        response['follow_up_suggestions'] = follow_up_suggestions
+            except Exception as e:
+                print(f"Error generating follow-up suggestions: {e}")
+                # Continue without follow-up suggestions
             
-            if query_understanding['category']:
-                context_update['last_category'] = query_understanding['category']
+            # Save to cache and update context
+            try:
+                # Save to cache for future use
+                knowledge_cache.add(query_text, response, session_id)
                 
-            if query_understanding['trip_type']:
-                context_update['last_trip_type'] = query_understanding['trip_type']
+                # If there's a session, update the context
+                if session_id:
+                    context_update = {
+                        'last_query': query_text,
+                        'last_response': response,
+                        'last_response_timestamp': time.time()
+                    }
+                    
+                    if query_understanding.get('city'):
+                        context_update['last_city'] = query_understanding['city']
+                    
+                    if query_understanding.get('category'):
+                        context_update['last_category'] = query_understanding['category']
+                        
+                    if query_understanding.get('trip_type'):
+                        context_update['last_trip_type'] = query_understanding['trip_type']
+                    
+                    knowledge_cache.update_session_context(session_id, context_update)
+                    
+                    # Add to conversation history
+                    sentiment = 0
+                    if 'current_query' in conversation_context and 'sentiment' in conversation_context['current_query']:
+                        sentiment = conversation_context['current_query']['sentiment']
+                    
+                    knowledge_cache.add_to_conversation(
+                        session_id, 
+                        query_text, 
+                        "Provided recommendations for " + (query_understanding.get('city') or "destinations"),
+                        sentiment
+                    )
+            except Exception as e:
+                print(f"Error updating cache and context: {e}")
+                # Continue without updating cache
             
-            knowledge_cache.update_session_context(session_id, context_update)
-            
-            # Add to conversation history
-            sentiment = 0
-            if 'current_query' in conversation_context and 'sentiment' in conversation_context['current_query']:
-                sentiment = conversation_context['current_query']['sentiment']
-            
-            knowledge_cache.add_to_conversation(
-                session_id, 
-                query_text, 
-                "Provided recommendations for " + (query_understanding['city'] or "destinations"),
-                sentiment
-            )
+            return jsonify(response)
         
-        return jsonify(response)
-        
+        except Exception as e:
+            # If advanced recommendation fails but we have simple recommendations, use those
+            if simple_response and 'recommendations' in simple_response and simple_response['recommendations']:
+                print(f"Using simple recommendations as fallback after error: {e}")
+                return jsonify(simple_response)
+            
+            # Log the full error for debugging
+            print(f"Error in recommendation process: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            # Return a friendly message to the user
+            return jsonify({
+                'error': 'An unexpected error occurred while processing your request.',
+                'is_conversation': True,
+                'message': "I'm sorry, I'm having trouble processing your request right now. Please try again with a simpler query or try again later."
+            }), 500
+            
     except Exception as e:
         # Log the error but provide a friendly message to the user
-        print(f"Error in recommendation: {str(e)}")
+        print(f"Fatal error in recommendation: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'error': 'An unexpected error occurred while processing your request.',
             'is_conversation': True,
@@ -1488,6 +1535,400 @@ def create_session():
         
         return jsonify({"session_id": session_id}), 201
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Add new API endpoint for creating tickets
+@app.route('/api/create_ticket', methods=['POST'])
+def create_ticket():
+    """
+    Create a new ticket for tracking an itinerary.
+    
+    Expected JSON input:
+    {
+        "email": "user@example.com",
+        "trip_id": "12345" or null,
+        "itinerary": {...} (Optional, full itinerary data)
+    }
+    
+    Returns:
+    {
+        "ticket_id": "WTO-ABC123",
+        "status": "created"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        # Validate input
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        email = data.get('email')
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+            
+        # Generate a unique ticket ID in the format "WTO-ABC123"
+        # Using a combination of letters and numbers for security
+        random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        ticket_id = f"WTO-{random_chars}"
+        
+        # Get trip ID or itinerary
+        trip_id = data.get('trip_id')
+        itinerary = data.get('itinerary')
+        
+        if not trip_id and not itinerary:
+            return jsonify({"error": "Either trip_id or itinerary must be provided"}), 400
+        
+        # If trip_id is provided, get the trip details
+        travel_data = itinerary
+        if trip_id and not itinerary:
+            travel_data = db.get_trip_by_id(trip_id)
+            if not travel_data:
+                return jsonify({"error": f"Trip with ID {trip_id} not found"}), 404
+            
+        # Create ticket in database
+        ticket = {
+            "ticket_id": ticket_id,
+            "email": email,
+            "trip_id": trip_id,
+            "itinerary": travel_data,
+            "status": "active",
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Save ticket to database
+        result = db.create_ticket(ticket)
+        
+        if "error" in result:
+            return jsonify(result), 500
+        
+        # Send email notification with ticket details
+        try:
+            email_sent = send_ticket_email(email, ticket_id, travel_data)
+            email_status = "Email notification sent." if email_sent else "Email notification failed to send."
+        except Exception as e:
+            print(f"Error sending email: {e}")
+            email_status = "Email notification failed to send."
+        
+        # Return the ticket ID to the user
+        return jsonify({
+            "ticket_id": ticket_id,
+            "status": "created",
+            "email_status": email_status,
+            "message": "Your ticket has been created. You can use this ticket ID to track your itinerary."
+        }), 201
+        
+    except Exception as e:
+        print(f"Error creating ticket: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Add API endpoint for looking up a ticket
+@app.route('/api/tickets/<ticket_id>', methods=['GET'])
+def get_ticket(ticket_id):
+    """
+    Get ticket details by ticket ID.
+    
+    URL Parameters:
+    - ticket_id: The ticket ID to look up
+    
+    Query Parameters (optional):
+    - email: Email address for validation
+    
+    Returns the ticket details if found.
+    """
+    try:
+        # Get email from query parameters (optional for validation)
+        email = request.args.get('email')
+        
+        # Look up ticket in database
+        ticket = db.get_ticket(ticket_id)
+        
+        if not ticket:
+            return jsonify({"error": "Ticket not found"}), 404
+            
+        # If email is provided, validate that it matches
+        if email and ticket['email'] != email:
+            return jsonify({"error": "Email does not match ticket record"}), 403
+            
+        # Get trip details if trip_id is available
+        trip_data = None
+        if ticket.get('trip_id'):
+            trip_data = db.get_trip_by_id(ticket['trip_id'])
+        
+        # Use ticket's itinerary if available
+        itinerary_data = ticket.get('itinerary')
+            
+        # Create a more comprehensive response
+        response = {
+            "ticket": {
+                "ticket_id": ticket['ticket_id'],
+                "status": ticket['status'],
+                "created_at": ticket['created_at'],
+                "updated_at": ticket['updated_at'],
+                # Include masked email for privacy
+                "email_masked": mask_email(ticket['email']),
+                # Include trip details if available
+                "trip": trip_data or itinerary_data or {}
+            }
+        }
+        
+        # Add more ticket metadata
+        if trip_data or itinerary_data:
+            travel_info = trip_data or itinerary_data
+            response["ticket"]["destination"] = travel_info.get('destination', 'Not specified')
+            response["ticket"]["travel_dates"] = travel_info.get('travel_dates', 'Not specified')
+            response["ticket"]["travelers"] = travel_info.get('travelers', 1)
+            
+            # Calculate days until trip
+            try:
+                if travel_info.get('travel_dates'):
+                    dates = travel_info['travel_dates'].split(' to ')
+                    if len(dates) > 0:
+                        start_date = datetime.strptime(dates[0], '%Y-%m-%d')
+                        today = datetime.now()
+                        days_until = (start_date - today).days
+                        if days_until >= 0:
+                            response["ticket"]["days_until_trip"] = days_until
+            except Exception as e:
+                print(f"Error calculating days until trip: {e}")
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        print(f"Error retrieving ticket: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Add API endpoint for getting all tickets for an email
+@app.route('/api/tickets', methods=['GET'])
+def get_tickets_by_email():
+    """
+    Get all tickets associated with an email address.
+    
+    Query Parameters:
+    - email: Email address to look up tickets for
+    
+    Returns a list of tickets.
+    """
+    try:
+        email = request.args.get('email')
+        
+        if not email:
+            return jsonify({"error": "Email parameter is required"}), 400
+            
+        # Get tickets from database
+        tickets = db.get_tickets_by_email(email)
+        
+        # Enhance ticket data with additional information
+        enhanced_tickets = []
+        for ticket in tickets:
+            # Get basic ticket info
+            ticket_info = {
+                "ticket_id": ticket['ticket_id'],
+                "status": ticket['status'],
+                "created_at": ticket['created_at'],
+                "updated_at": ticket['updated_at']
+            }
+            
+            # Add destination and date information if available
+            travel_info = ticket.get('itinerary') or {}
+            if ticket.get('trip_id'):
+                try:
+                    trip_data = db.get_trip_by_id(ticket['trip_id'])
+                    if trip_data:
+                        travel_info = trip_data
+                except Exception as e:
+                    print(f"Error fetching trip data: {e}")
+            
+            # Add summary information
+            ticket_info["destination"] = travel_info.get('destination', 'Not specified')
+            ticket_info["travel_dates"] = travel_info.get('travel_dates', 'Not specified')
+            
+            # Calculate days until trip
+            try:
+                if travel_info.get('travel_dates'):
+                    dates = travel_info['travel_dates'].split(' to ')
+                    if len(dates) > 0:
+                        start_date = datetime.strptime(dates[0], '%Y-%m-%d')
+                        today = datetime.now()
+                        days_until = (start_date - today).days
+                        if days_until >= 0:
+                            ticket_info["days_until_trip"] = days_until
+            except Exception as e:
+                print(f"Error calculating days until trip: {e}")
+            
+            enhanced_tickets.append(ticket_info)
+        
+        # Return list of tickets
+        return jsonify({
+            "tickets": enhanced_tickets
+        }), 200
+        
+    except Exception as e:
+        print(f"Error retrieving tickets: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# Helper function to mask email for privacy
+def mask_email(email):
+    """Mask part of the email address for privacy"""
+    if not email or '@' not in email:
+        return email
+        
+    parts = email.split('@')
+    username = parts[0]
+    domain = parts[1]
+    
+    # Show first 2 characters and last character of username
+    if len(username) > 3:
+        masked_username = username[0:2] + '*' * (len(username) - 3) + username[-1]
+    else:
+        masked_username = username[0] + '*' * (len(username) - 1)
+        
+    return f"{masked_username}@{domain}"
+
+@app.route('/api/tickets/<ticket_id>/delete', methods=['DELETE'])
+def delete_ticket(ticket_id):
+    """
+    Delete a ticket by ticket ID.
+    
+    URL Parameters:
+    - ticket_id: The ticket ID to delete
+    
+    Query Parameters:
+    - email: Email address for verification
+    
+    Returns success or error message.
+    """
+    try:
+        # Get email from query parameters for verification
+        email = request.args.get('email')
+        
+        if not email:
+            return jsonify({"error": "Email parameter is required for verification"}), 400
+            
+        # Delete ticket from database with email verification
+        result = db.delete_ticket(ticket_id, email)
+        
+        if "error" in result:
+            return jsonify(result), 404 if "not found" in result["error"].lower() else 400
+            
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Error deleting ticket: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    """
+    Get all distinct categories available in the database.
+    
+    Returns a list of category names.
+    """
+    try:
+        # Get all distinct categories from the database
+        categories = db.get_distinct_categories()
+        
+        return jsonify({
+            "categories": categories
+        }), 200
+        
+    except Exception as e:
+        print(f"Error retrieving categories: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/tickets/<ticket_id>/update', methods=['PUT'])
+def update_ticket():
+    """
+    Update a ticket's status and send an email notification.
+    
+    URL Parameters:
+    - ticket_id: The ticket ID to update
+    
+    Expected JSON input:
+    {
+        "status": "confirmed" | "cancelled" | "completed",
+        "email": "user@example.com" (optional, for verification)
+    }
+    
+    Returns success or error message.
+    """
+    try:
+        ticket_id = request.view_args.get('ticket_id')
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
+        # Get the new status
+        new_status = data.get('status')
+        if not new_status:
+            return jsonify({"error": "Status is required"}), 400
+            
+        # Validate status value
+        valid_statuses = ['active', 'confirmed', 'cancelled', 'completed', 'pending']
+        if new_status not in valid_statuses:
+            return jsonify({"error": f"Invalid status. Must be one of: {', '.join(valid_statuses)}"}), 400
+        
+        # Get email for verification (optional)
+        email = data.get('email')
+        
+        # Get the current ticket
+        ticket = db.get_ticket(ticket_id)
+        if not ticket:
+            return jsonify({"error": "Ticket not found"}), 404
+            
+        # Verify email if provided
+        if email and ticket['email'] != email:
+            return jsonify({"error": "Email does not match ticket record"}), 403
+        
+        # Update the ticket status
+        result = db.update_ticket_status(ticket_id, new_status)
+        
+        if "error" in result:
+            return jsonify(result), 400
+            
+        # Get trip data for the email notification
+        travel_data = ticket.get('itinerary') or {}
+        if ticket.get('trip_id'):
+            try:
+                trip_data = db.get_trip_by_id(ticket['trip_id'])
+                if trip_data:
+                    travel_data = trip_data
+            except Exception as e:
+                print(f"Error fetching trip data: {e}")
+        
+        # Prepare status-specific message for email
+        status_messages = {
+            'confirmed': 'Your travel booking has been confirmed!',
+            'cancelled': 'Your travel booking has been cancelled.',
+            'completed': 'Your trip has been marked as completed. We hope you enjoyed your journey!',
+            'pending': 'Your booking is pending confirmation.',
+            'active': 'Your booking is now active.'
+        }
+        
+        # Add status message to travel data for email
+        travel_data['status_message'] = status_messages.get(new_status, f'Your booking status has been updated to: {new_status}')
+        travel_data['status'] = new_status
+        
+        # Send email notification about status change
+        try:
+            email_sent = send_ticket_email(ticket['email'], ticket_id, travel_data)
+            email_status = "Status update notification sent." if email_sent else "Status update notification failed to send."
+        except Exception as e:
+            print(f"Error sending status update email: {e}")
+            email_status = "Status update notification failed to send."
+        
+        return jsonify({
+            "success": True,
+            "ticket_id": ticket_id,
+            "status": new_status,
+            "email_status": email_status,
+            "message": f"Ticket status updated to '{new_status}'."
+        }), 200
+        
+    except Exception as e:
+        print(f"Error updating ticket: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

@@ -44,7 +44,7 @@ window.onscroll = () => {
             navLinks.forEach(links => 
                 {
                     links.classList.remove('active');
-                    
+
                     // Fix the selector syntax
                     try {
                         document.querySelector('header nav a[href="#' + id + '"]').classList.add('active');

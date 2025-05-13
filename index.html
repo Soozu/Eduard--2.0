@@ -24,6 +24,9 @@
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <!-- GraphHopper JavaScript Client -->
         <script src="https://unpkg.com/graphhopper-js-api-client/dist/graphhopper-client.js"></script>
+        <!-- Flatpickr Date Picker -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
         
 
@@ -39,10 +42,10 @@
             <i class="fa-solid fa-bars" id="menu-icon"></i>
             <nav class="navbar">
                <a href="home.html" class="active"><span>Home </span></a>
-               <a href="home.html#signin"> <span>Sign Up/Sign In</span></a>
                <a href="home.html#about"> <span>About us</span></a>
                <a href="#services"> <span>Services</span> </a>
                <a href="#contact"> <span>Contact</span></a>
+               <a href="tracker.html"><span>Ticket Tracker</span></a>
             </nav>
         </header>
 
@@ -239,49 +242,28 @@
   // API endpoint for recommendations
   const API_URL = 'http://localhost:5000/api/recommend';
   
-  // User Authentication and Session Management
+  // Simple session management (no user authentication)
   let authState = {
-    sessionId: null,
-    isLoggedIn: false,
-    userId: null,
-    username: null,
-    email: null
+    sessionId: null
   };
   
-  // Load auth state from localStorage on page load
+  // Load session from localStorage on page load
   function loadAuthState() {
-    const savedAuthState = localStorage.getItem('authState');
-    if (savedAuthState) {
-      authState = JSON.parse(savedAuthState);
-      if (authState.isLoggedIn) {
-        console.log(`User logged in: ${authState.username}`);
-        // Update UI based on login state
-        updateUIForAuthState();
+    const savedSession = localStorage.getItem('sessionState');
+    if (savedSession) {
+      try {
+        const parsedSession = JSON.parse(savedSession);
+        authState.sessionId = parsedSession.sessionId;
+        console.log('Session loaded:', authState.sessionId);
+      } catch (error) {
+        console.error('Error parsing saved session:', error);
       }
     }
   }
   
-  // Save auth state to localStorage
+  // Save session to localStorage
   function saveAuthState() {
-    localStorage.setItem('authState', JSON.stringify(authState));
-  }
-  
-  // Update UI elements based on authentication state
-  function updateUIForAuthState() {
-    // Example: You might add a user profile section, change button text, etc.
-    if (authState.isLoggedIn) {
-      // Add logged-in user's name to the header
-      const headerInfo = document.querySelector('.chat-header-info');
-      if (headerInfo) {
-        const userElement = document.createElement('div');
-        userElement.className = 'loggedin-user';
-        userElement.innerHTML = `Signed in as: ${authState.username} <button id="logoutBtn" class="small-btn">Log out</button>`;
-        headerInfo.appendChild(userElement);
-        
-        // Add logout button functionality
-        document.getElementById('logoutBtn').addEventListener('click', logout);
-      }
-    }
+    localStorage.setItem('sessionState', JSON.stringify(authState));
   }
   
   // Initialize session on page load
@@ -316,120 +298,6 @@
       }
     } catch (error) {
       console.error('Error creating session:', error);
-    }
-  }
-  
-  // Register new user
-  async function register(username, email, password) {
-    try {
-      const response = await fetch('http://localhost:5000/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-          previous_session_id: authState.sessionId
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Update auth state
-        authState.isLoggedIn = true;
-        authState.userId = data.user.id;
-        authState.username = data.user.username;
-        authState.email = data.user.email;
-        authState.sessionId = data.session_id;
-        
-        saveAuthState();
-        updateUIForAuthState();
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.error };
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      return { success: false, error: 'Network error' };
-    }
-  }
-  
-  // Login user
-  async function login(email, password) {
-    try {
-      const response = await fetch('http://localhost:5000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          previous_session_id: authState.sessionId
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Update auth state
-        authState.isLoggedIn = true;
-        authState.userId = data.user.id;
-        authState.username = data.user.username;
-        authState.email = data.user.email;
-        authState.sessionId = data.session_id;
-        
-        saveAuthState();
-        updateUIForAuthState();
-        
-        return { success: true };
-      } else {
-        return { success: false, error: data.error };
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: 'Network error' };
-    }
-  }
-  
-  // Logout user
-  function logout() {
-    // Just clear the auth state, no need to call the server
-    authState.isLoggedIn = false;
-    authState.userId = null;
-    authState.username = null;
-    authState.email = null;
-    // Keep the session ID for guest usage
-    
-    saveAuthState();
-    
-    // Reload the page to reset the UI
-    window.location.reload();
-  }
-  
-  // Get user's saved trips
-  async function getSavedTrips() {
-    if (!authState.isLoggedIn) {
-      return { success: false, error: 'User not logged in' };
-    }
-    
-    try {
-      const response = await fetch(`http://localhost:5000/api/trips?session_id=${authState.sessionId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        return { success: true, trips: data.trips };
-      } else {
-        const errorData = await response.json();
-        return { success: false, error: errorData.error };
-      }
-    } catch (error) {
-      console.error('Error getting saved trips:', error);
-      return { success: false, error: 'Network error' };
     }
   }
   
@@ -580,59 +448,83 @@
       
       console.log("Sending recommendation request:", requestBody);
       
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-      console.log("Received recommendation response:", data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get recommendations');
+      // Add a timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId); // Clear the timeout if fetch completes
+  
+        const data = await response.json();
+        console.log("Received recommendation response:", data);
+  
+        if (!response.ok) {
+          // Check if there's a conversation message in the error response
+          if (data.is_conversation && data.message) {
+            return {
+              is_conversation: true,
+              message: data.message
+            };
+          }
+          
+          throw new Error(data.error || 'Failed to get recommendations');
+        }
+  
+        return data;
+      } catch (fetchError) {
+        clearTimeout(timeoutId); // Clear the timeout if fetch throws an error
+        
+        // Handle AbortController timeout
+        if (fetchError.name === 'AbortError') {
+          console.error('Request timed out');
+          return {
+            is_conversation: true,
+            message: "I'm having trouble connecting to my brain right now. Please try again in a moment."
+          };
+        }
+        
+        // Re-throw the error to be handled by the outer catch
+        throw fetchError;
       }
-
-      return data;
     } catch (error) {
       console.error('Error getting recommendations:', error);
-      return { error: error.message };
+      
+      // Return a graceful conversational response
+      return { 
+        is_conversation: true, 
+        message: "I'm having a little trouble processing that request right now. Could you try asking in a different way or try something simpler?" 
+      };
     }
   }
 
   // Helper function to generate star rating HTML
   function getStarRating(rating) {
-    // Ensure rating is a number and between 0-5
-    const numericRating = Number(rating) || 0;
-    const clampedRating = Math.max(0, Math.min(5, numericRating));
+    // Convert rating to number between 1-5
+    const numRating = typeof rating === 'number' ? rating : 4;
+    const stars = Math.min(5, Math.max(1, Math.round(numRating)));
     
-    const fullStar = '<i class="fas fa-star"></i>';
-    const halfStar = '<i class="fas fa-star-half-alt"></i>';
-    const emptyStar = '<i class="far fa-star"></i>';
-    
-    let stars = '';
-    const fullStars = Math.floor(clampedRating);
-    const hasHalfStar = (clampedRating % 1) >= 0.5;
-    
-    // Add full stars
-    for (let i = 0; i < fullStars; i++) {
-      stars += fullStar;
+    // Generate star icons
+    let starsHtml = '';
+    for (let i = 0; i < 5; i++) {
+        if (i < stars) {
+            // Full star
+            starsHtml += '★'; 
+        } else {
+            // Empty star
+            starsHtml += '☆';
+        }
     }
     
-    // Add half star if needed
-    if (hasHalfStar) {
-      stars += halfStar;
-    }
-    
-    // Add empty stars
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    for (let i = 0; i < emptyStars; i++) {
-      stars += emptyStar;
-    }
-    
-    return stars;
+    return starsHtml;
   }
 
   // Format recommendations into HTML with enhanced understanding
@@ -790,6 +682,40 @@
     return budgetMap[budget] || budget;
   }
 
+  // Helper functions for budget handling in trip creation
+  function parseBudgetAmount(budgetInput) {
+      if (typeof budgetInput === 'number') return budgetInput;
+      
+      // Remove currency symbols, commas and spaces
+      const cleanedInput = budgetInput.toString().replace(/[₱,\s]/g, '');
+      
+      // Try to extract a number
+      const matches = cleanedInput.match(/(\d+)/);
+      if (matches && matches[1]) {
+          return parseInt(matches[1]);
+      }
+      
+      return 0;
+  }
+  
+  function formatTripBudget(amount) {
+      // Format as Philippine Peso
+      return `₱${amount.toLocaleString('en-PH')}`;
+  }
+  
+  // Calculate per day budget for the confirmation message
+  function calculatePerDayBudget(tripData) {
+      if (!tripData.duration || tripData.duration <= 0) return '';
+      
+      // Extract just the number from the budget
+      let budgetAmount = parseBudgetAmount(tripData.budget);
+      
+      // Calculate per day budget
+      const perDayBudget = Math.floor(budgetAmount / tripData.duration);
+      
+      return ` (approx. ₱${perDayBudget.toLocaleString('en-PH')} per day)`;
+  }
+
   async function sendMessage(message = null) {
       const userMessage = message || userInput.value.trim();
       if (userMessage === '') return;
@@ -810,6 +736,158 @@
               } else {
                   addMessage("I didn't understand. Please type 'yes' to create the trip or 'edit' to make changes.", false);
               }
+              return;
+          } else if (tripCreationState.waitingFor === 'destination') {
+              // We're waiting for the destination input
+              const destination = userMessage.trim();
+              
+              // Show a loading message
+              addMessage(`Looking up information about ${destination}...`, false);
+              
+              try {
+                  // Search for this destination to see if it exists and get attractions
+                  const response = await fetch(`http://localhost:5000/api/recommend`, {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ 
+                          query: `Show me attractions in ${destination}`,
+                          session_id: authState.sessionId
+                      })
+                  });
+                  
+                  const data = await response.json();
+                  
+                  if (response.ok && data.recommendations && data.recommendations.length > 0) {
+                      // Found attractions for this destination
+                      const attractions = data.recommendations;
+                      
+                      // Display top attractions
+                      let attractionsHtml = `
+                          <div class="destination-attractions">
+                              <h4>Top Attractions in ${destination}</h4>
+                              <div class="attractions-list">
+                      `;
+                      
+                      attractions.forEach(attraction => {
+                          const starRating = getStarRating(attraction.rating || 4);
+                          
+                          attractionsHtml += `
+                              <div class="attraction-item">
+                                  <h5>${attraction.name}</h5>
+                                  <div class="attraction-details">
+                                      <span class="category">${attraction.category}</span>
+                                      <span class="rating">${starRating}</span>
+                                  </div>
+                                  <p class="description">${attraction.description.substring(0, 120)}${attraction.description.length > 120 ? '...' : ''}</p>
+                              </div>
+                          `;
+                      });
+                      
+                      attractionsHtml += `
+                              </div>
+                              <p>Would you like to visit ${destination}?</p>
+                              <div class="destination-actions">
+                                  <button id="confirm-destination-btn" class="confirm-btn">Yes, this looks perfect!</button>
+                                  <button id="try-another-destination-btn" class="secondary-btn">Try another destination</button>
+                              </div>
+                          </div>
+                      `;
+                      
+                      addMessage(attractionsHtml, false);
+                      
+                      // Add event listeners to buttons
+                      setTimeout(() => {
+                          document.getElementById('confirm-destination-btn').addEventListener('click', function() {
+                              // Process the destination
+                              tripCreationState.waitingFor = null; // Clear waiting flag
+                              processTripAnswer(destination);
+                          });
+                          
+                          document.getElementById('try-another-destination-btn').addEventListener('click', function() {
+                              // Ask for destination again without advancing step
+                              addMessage("Where else would you like to go?", false);
+                          });
+                      }, 100);
+                  } else {
+                      // No specific attractions found, ask for confirmation
+                      const confirmationHtml = `
+                          <div class="destination-confirmation">
+                              <p>I don't have specific information about attractions in ${destination}, but we can still plan a trip there.</p>
+                              <div class="destination-actions">
+                                  <button id="confirm-unknown-destination-btn" class="confirm-btn">Continue with ${destination}</button>
+                                  <button id="try-different-destination-btn" class="secondary-btn">Try a different destination</button>
+                              </div>
+                          </div>
+                      `;
+                      
+                      addMessage(confirmationHtml, false);
+                      
+                      // Add event listeners to buttons
+                      setTimeout(() => {
+                          document.getElementById('confirm-unknown-destination-btn').addEventListener('click', function() {
+                              // Process the destination
+                              tripCreationState.waitingFor = null; // Clear waiting flag
+                              processTripAnswer(destination);
+                          });
+                          
+                          document.getElementById('try-different-destination-btn').addEventListener('click', function() {
+                              // Ask for destination again without advancing step
+                              addMessage("Where else would you like to go?", false);
+                          });
+                      }, 100);
+                  }
+              } catch (error) {
+                  console.error('Error looking up destination:', error);
+                  
+                  // Fallback to simply accepting the destination
+                  const fallbackHtml = `
+                      <div class="destination-confirmation">
+                          <p>I had trouble looking up information about ${destination}, but we can still plan your trip there.</p>
+                          <div class="destination-actions">
+                              <button id="confirm-fallback-destination-btn" class="confirm-btn">Continue with ${destination}</button>
+                              <button id="retry-destination-btn" class="secondary-btn">Try again</button>
+                          </div>
+                      </div>
+                  `;
+                  
+                  addMessage(fallbackHtml, false);
+                  
+                  // Add event listeners to buttons
+                  setTimeout(() => {
+                      document.getElementById('confirm-fallback-destination-btn').addEventListener('click', function() {
+                          // Process the destination
+                          tripCreationState.waitingFor = null; // Clear waiting flag
+                          processTripAnswer(destination);
+                      });
+                      
+                      document.getElementById('retry-destination-btn').addEventListener('click', function() {
+                          // Ask for destination again without advancing step
+                          addMessage("Where else would you like to go?", false);
+                      });
+                  }, 100);
+              }
+              
+              return;
+          } else if (tripCreationState.waitingFor === 'budget') {
+              // We're waiting for the budget input
+              const budget = userMessage.trim();
+              
+              // Validate the budget input
+              const budgetAmount = parseBudgetAmount(budget);
+              if (budgetAmount < 5000) {
+                  addMessage("The minimum budget required is ₱5,000 per trip. Please enter a higher amount.", false);
+                  return;
+              }
+              
+              // Format and display the budget
+              const formattedBudget = formatTripBudget(budgetAmount);
+              addMessage(formattedBudget, true);
+              
+              // Process the budget answer
+              tripCreationState.waitingFor = null;
+              processTripAnswer(budgetAmount);
           } else {
               // Process the answer for the current step
               processTripAnswer(userMessage);
@@ -827,7 +905,8 @@
           // Remove typing indicator
           removeTypingIndicator();
           
-          if (response.error) {
+          if (response.error && !response.is_conversation) {
+              // Only show error if not a conversation response
               addMessage(`Sorry, I encountered an error: ${response.error}`);
               return;
           }
@@ -850,7 +929,7 @@
           addMessage(formattedResponse);
           
           // Set up event listeners for follow-up buttons
-          setTimeout(() => {
+      setTimeout(() => {
               document.querySelectorAll('.follow-up-btn').forEach(btn => {
                   btn.addEventListener('click', () => {
                       const query = btn.dataset.query;
@@ -866,8 +945,8 @@
       } catch (error) {
           // Handle errors gracefully
           removeTypingIndicator();
-          addMessage("Sorry, I'm having trouble connecting to my brain right now. Please try again in a moment.");
           console.error('Error in sendMessage:', error);
+          addMessage("Sorry, I'm having trouble connecting to my brain right now. Please try again in a moment.");
       }
   }
   
@@ -995,7 +1074,7 @@
   }
 
   function handleCreateTrip() {
-      addMessage("I'd love to help you create a new trip! Let's get started. Where would you like to go?", false);
+      addMessage("I'd love to help you create a new trip! Let's start planning your journey.", false);
       
       // Start the trip creation flow
       startTripCreationFlow();
@@ -1015,8 +1094,8 @@
       active: false,
       currentStep: 0,
       steps: [
+          { id: 'travel_dates', question: "When are you planning to travel? Please use the date picker below to select your travel dates." },
           { id: 'destination', question: "Great! Where would you like to go?" },
-          { id: 'travel_dates', question: "When are you planning to travel? (Format: YYYY-MM-DD to YYYY-MM-DD)" },
           { id: 'travelers', question: "How many people will be traveling?" },
           { id: 'budget', question: "What's your budget for this trip?" },
           { id: 'interests', question: "What are you interested in doing during this trip? (e.g., nature, history, food)" }
@@ -1026,6 +1105,7 @@
   function startTripCreationFlow() {
       tripCreationState.active = true;
       tripCreationState.currentStep = 0;
+      tripCreationState.waitingFor = null; // Initialize waiting state
       tripData = {
           destination: '',
           travel_dates: '',
@@ -1048,9 +1128,343 @@
       }
       
       const step = tripCreationState.steps[stepIndex];
-      addMessage(step.question, false);
+      
+      // Special handling for date selection
+      if (step.id === 'travel_dates') {
+          // Create and insert a date picker UI
+          const datepickerHtml = `
+              <div class="date-picker-container">
+                  <p>Please select your travel dates:</p>
+                  <div class="date-input-container">
+                      <input type="text" id="travel-date-picker" placeholder="Select date range" readonly>
+                      <button id="date-confirm-btn" class="date-confirm-btn">Confirm Dates</button>
+                  </div>
+              </div>
+          `;
+          
+          addMessage(datepickerHtml, false);
+          
+          // Initialize the date picker after it's added to the DOM
+          setTimeout(() => {
+              const dateInput = document.getElementById('travel-date-picker');
+              if (dateInput) {
+                  // Get today's date for min date
+                  const today = new Date();
+                  const minDate = today.toISOString().split('T')[0];
+                  
+                  // Initialize flatpickr
+                  const fp = flatpickr(dateInput, {
+                      mode: "range",
+                      minDate: "today",
+                      dateFormat: "Y-m-d",
+                      altInput: true,
+                      altFormat: "F j, Y",
+                      showMonths: 2,
+                      static: true
+                  });
+                  
+                  // Add event listener to the confirm button
+                  document.getElementById('date-confirm-btn').addEventListener('click', function() {
+                      const selectedDates = dateInput.value;
+                      if (selectedDates) {
+                          // Process the date input directly
+                          processTripAnswer(selectedDates);
+                      } else {
+                          addMessage("Please select a date range first.", false);
+                      }
+                  });
+              }
+          }, 100);
+      } else if (step.id === 'destination') {
+          // Special handling for destination input
+          addMessage(step.question, false);
+          
+          // Don't create the input field anymore - user should type directly in chat
+          // Set a flag to indicate we're waiting for destination
+          tripCreationState.waitingFor = 'destination';
+          
+          // Add instructions to use chat with a visual hint
+          addMessage(`
+              <div class="chat-instruction">
+                  <i class="fas fa-keyboard" style="margin-right: 8px;"></i>
+                  Please type your destination in the chat box below (e.g., "Imus", "Boracay", "Manila").
+                  <div class="instruction-arrow">
+                      <i class="fas fa-arrow-down" style="animation: bounce 1.5s infinite;"></i>
+                  </div>
+              </div>
+          `, false);
+          
+          // Add a bit of CSS for the animation
+          const arrowStyle = document.createElement('style');
+          arrowStyle.innerHTML = `
+              @keyframes bounce {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(10px); }
+              }
+              .chat-instruction {
+                  background: rgba(0, 229, 255, 0.1);
+                  border-left: 3px solid #00e5ff;
+                  padding: 12px;
+                  margin-top: 8px;
+                  border-radius: 4px;
+              }
+              .instruction-arrow {
+                  text-align: center;
+                  margin-top: 12px;
+                  color: #00e5ff;
+                  font-size: 20px;
+              }
+          `;
+          document.head.appendChild(arrowStyle);
+      } else if (step.id === 'budget') {
+          // Special handling for budget input
+          addMessage(step.question, false);
+          
+          // Set a flag to indicate we're waiting for budget
+          tripCreationState.waitingFor = 'budget';
+          
+          // Create a budget selection UI with slider and preset options
+          const budgetHtml = `
+              <div class="budget-selector-container">
+                  <p class="budget-note">Please enter your budget (minimum ₱5,000):</p>
+                  
+                  <div class="budget-input-container">
+                      <span class="currency-symbol">₱</span>
+                      <input type="number" id="budget-input" min="5000" value="10000" class="budget-input">
+                      <button id="budget-confirm-btn" class="budget-confirm-btn">Confirm Budget</button>
+                  </div>
+                  
+                  <div class="budget-slider-container">
+                      <input type="range" id="budget-slider" min="5000" max="100000" step="1000" value="10000" class="budget-slider">
+                      <div class="budget-range-labels">
+                          <span>₱5,000</span>
+                          <span>₱50,000</span>
+                          <span>₱100,000</span>
+                      </div>
+                  </div>
+                  
+                  <div class="budget-presets">
+                      <button class="budget-preset-btn" data-value="5000">Basic (₱5,000)</button>
+                      <button class="budget-preset-btn" data-value="15000">Standard (₱15,000)</button>
+                      <button class="budget-preset-btn" data-value="30000">Premium (₱30,000)</button>
+                      <button class="budget-preset-btn" data-value="50000">Luxury (₱50,000)</button>
+                  </div>
+                  
+                  <p class="trip-duration-note">Your trip will be <span id="trip-days">${tripData.duration || 'several'}</span> days long. The budget should be sufficient for the entire duration.</p>
+              </div>
+          `;
+          
+          addMessage(budgetHtml, false);
+          
+          // Initialize budget controls
+          setTimeout(() => {
+              const budgetInput = document.getElementById('budget-input');
+              const budgetSlider = document.getElementById('budget-slider');
+              const budgetConfirmBtn = document.getElementById('budget-confirm-btn');
+              const presetButtons = document.querySelectorAll('.budget-preset-btn');
+              
+              if (budgetInput && budgetSlider && budgetConfirmBtn) {
+                  // Sync slider and input
+                  budgetInput.addEventListener('input', function() {
+                      const value = parseInt(this.value) || 5000;
+                      if (value < 5000) {
+                          this.value = 5000;
+                      }
+                      budgetSlider.value = this.value;
+                  });
+                  
+                  budgetSlider.addEventListener('input', function() {
+                      budgetInput.value = this.value;
+                  });
+                  
+                  // Add preset button functionality
+                  presetButtons.forEach(button => {
+                      button.addEventListener('click', function() {
+                          const value = parseInt(this.dataset.value);
+                          budgetInput.value = value;
+                          budgetSlider.value = value;
+                      });
+                  });
+                  
+                  // Confirm button
+                  budgetConfirmBtn.addEventListener('click', function() {
+                      const value = parseInt(budgetInput.value) || 0;
+                      if (value < 5000) {
+                          addMessage("The minimum budget required is ₱5,000 per trip. Please enter a higher amount.", false);
+                          return;
+                      }
+                      
+                      // Format and display the budget
+                      const formattedBudget = formatTripBudget(value);
+                      addMessage(formattedBudget, true);
+                      
+                      // Process the budget answer
+                      tripCreationState.waitingFor = null;
+                      processTripAnswer(value);
+                  });
+              }
+          }, 100);
+      } else if (step.id === 'interests') {
+          // Special handling for interests - fetch categories and display as selectable options
+          addMessage(step.question, false);
+          
+          // Create a container for the categories
+          const categoriesHtml = `
+              <div class="categories-container">
+                  <p>Loading available categories...</p>
+                  <div id="categories-list" class="categories-list"></div>
+                  <div class="categories-actions">
+                      <button id="confirm-categories-btn" class="confirm-categories-btn">Confirm Selections</button>
+                  </div>
+              </div>
+          `;
+          
+          addMessage(categoriesHtml, false);
+          
+          // Fetch categories from API
+          fetchCategories();
+      } else {
+          // Regular questions
+          addMessage(step.question, false);
+      }
   }
   
+  // Function to fetch categories from API
+  async function fetchCategories() {
+      try {
+          const response = await fetch('http://localhost:5000/api/categories');
+          const data = await response.json();
+          
+          if (response.ok && data.categories) {
+              displayCategories(data.categories);
+          } else {
+              // Error handling for the categories
+              document.getElementById('categories-list').innerHTML = `
+                  <p class="error-text">Sorry, couldn't load categories. Please type your interests separated by commas.</p>
+                  <input type="text" id="interests-input" class="interests-input" placeholder="e.g., nature, history, food">
+                  <button id="interests-confirm-btn" class="confirm-categories-btn">Confirm</button>
+              `;
+              
+              // Add event listener to the confirm button
+              document.getElementById('interests-confirm-btn').addEventListener('click', function() {
+                  const interestsInput = document.getElementById('interests-input');
+                  if (interestsInput && interestsInput.value.trim()) {
+                      processTripAnswer(interestsInput.value);
+                  } else {
+                      addMessage("Please enter at least one interest.", false);
+                  }
+              });
+          }
+      } catch (error) {
+          console.error('Error fetching categories:', error);
+          // Fallback to text input
+          document.getElementById('categories-list').innerHTML = `
+              <p class="error-text">Sorry, couldn't load categories. Please type your interests separated by commas.</p>
+              <input type="text" id="interests-input" class="interests-input" placeholder="e.g., nature, history, food">
+              <button id="interests-confirm-btn" class="confirm-categories-btn">Confirm</button>
+          `;
+          
+          // Add event listener to the confirm button
+          document.getElementById('interests-confirm-btn').addEventListener('click', function() {
+              const interestsInput = document.getElementById('interests-input');
+              if (interestsInput && interestsInput.value.trim()) {
+                  processTripAnswer(interestsInput.value);
+              } else {
+                  addMessage("Please enter at least one interest.", false);
+              }
+          });
+      }
+  }
+
+  // Function to display categories as selectable options
+  function displayCategories(categories) {
+      const categoriesList = document.getElementById('categories-list');
+      if (!categoriesList) return;
+      
+      // Clear loading message
+      categoriesList.innerHTML = '';
+      
+      // Add each category as a checkbox
+      categories.forEach(category => {
+          const categoryItem = document.createElement('div');
+          categoryItem.className = 'category-item';
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = `category-${category.replace(/\s+/g, '-').toLowerCase()}`;
+          checkbox.value = category;
+          checkbox.className = 'category-checkbox';
+          
+          const label = document.createElement('label');
+          label.htmlFor = checkbox.id;
+          label.textContent = category;
+          
+          categoryItem.appendChild(checkbox);
+          categoryItem.appendChild(label);
+          categoriesList.appendChild(categoryItem);
+      });
+      
+      // Add "Other" option with text input
+      const otherItem = document.createElement('div');
+      otherItem.className = 'category-item other-category';
+      
+      const otherCheckbox = document.createElement('input');
+      otherCheckbox.type = 'checkbox';
+      otherCheckbox.id = 'category-other';
+      otherCheckbox.className = 'category-checkbox';
+      
+      const otherLabel = document.createElement('label');
+      otherLabel.htmlFor = 'category-other';
+      otherLabel.textContent = 'Other:';
+      
+      const otherInput = document.createElement('input');
+      otherInput.type = 'text';
+      otherInput.id = 'other-interests';
+      otherInput.className = 'other-interests-input';
+      otherInput.placeholder = 'Type other interests...';
+      otherInput.disabled = true;
+      
+      // Enable/disable the other input based on checkbox state
+      otherCheckbox.addEventListener('change', function() {
+          otherInput.disabled = !this.checked;
+          if (this.checked) {
+              otherInput.focus();
+          }
+      });
+      
+      otherItem.appendChild(otherCheckbox);
+      otherItem.appendChild(otherLabel);
+      otherItem.appendChild(otherInput);
+      categoriesList.appendChild(otherItem);
+      
+      // Add event listener to the confirm button
+      document.getElementById('confirm-categories-btn').addEventListener('click', function() {
+          const selectedCategories = [];
+          
+          // Get all checked categories
+          document.querySelectorAll('.category-checkbox:checked').forEach(checkbox => {
+              if (checkbox.id === 'category-other') {
+                  const otherValue = document.getElementById('other-interests').value.trim();
+                  if (otherValue) {
+                      // Split other interests by commas
+                      const otherInterests = otherValue.split(',').map(i => i.trim());
+                      selectedCategories.push(...otherInterests);
+                  }
+              } else {
+                  selectedCategories.push(checkbox.value);
+              }
+          });
+          
+          if (selectedCategories.length > 0) {
+              // Add user's selection as a message
+              addMessage(selectedCategories.join(', '), true);
+              processTripAnswer(selectedCategories.join(', '));
+          } else {
+              addMessage("Please select at least one interest or enter your own.", false);
+          }
+      });
+  }
+
   function processTripAnswer(answer) {
       const currentStep = tripCreationState.steps[tripCreationState.currentStep];
       
@@ -1061,12 +1475,35 @@
               break;
           case 'travel_dates':
               tripData.travel_dates = answer;
+              // Calculate and store trip duration
+              try {
+                  const datesParts = answer.split(' to ');
+                  if (datesParts.length === 2) {
+                      const startDate = new Date(datesParts[0]);
+                      const endDate = new Date(datesParts[1]);
+                      const diffTime = Math.abs(endDate - startDate);
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end day
+                      tripData.duration = diffDays;
+                  } else {
+                      tripData.duration = 0; // Default if date format is incorrect
+                  }
+              } catch (e) {
+                  console.error('Error calculating trip duration:', e);
+                  tripData.duration = 0;
+              }
               break;
           case 'travelers':
               tripData.travelers = parseInt(answer) || 1;
               break;
           case 'budget':
-              tripData.budget = answer;
+              // Validate minimum budget requirement (5000+)
+              const budgetAmount = parseBudgetAmount(answer);
+              if (budgetAmount < 5000) {
+                  addMessage(`The minimum budget required is ₱5,000 per trip. Please enter a higher amount.`, false);
+                  // Don't advance to next step, stay on budget question
+                  return;
+              }
+              tripData.budget = formatTripBudget(budgetAmount);
               break;
           case 'interests':
               tripData.interests = answer.split(',').map(i => i.trim());
@@ -1089,8 +1526,9 @@
                   <ul>
                       <li><strong>Destination:</strong> ${tripData.destination}</li>
                       <li><strong>Dates:</strong> ${tripData.travel_dates}</li>
+                      <li><strong>Duration:</strong> ${tripData.duration} days</li>
                       <li><strong>Travelers:</strong> ${tripData.travelers}</li>
-                      <li><strong>Budget:</strong> ${tripData.budget}</li>
+                      <li><strong>Budget:</strong> ${tripData.budget}${calculatePerDayBudget(tripData)}</li>
                       <li><strong>Interests:</strong> ${tripData.interests.join(', ')}</li>
                   </ul>
                   <p>Would you like to create this trip? Type "yes" to continue or "edit" to make changes.</p>
@@ -1228,7 +1666,17 @@
           itineraryHtml += `<p>No itinerary available for this trip.</p>`;
       }
       
+      // Add ticket creation functionality with email input
       itineraryHtml += `
+              </div>
+              <div class="ticket-creation">
+                  <h4>Create a Tracking Ticket</h4>
+                  <p>Enter your email to create a ticket for tracking this itinerary:</p>
+                  <div class="ticket-input-container">
+                      <input type="email" id="ticketEmail" placeholder="your@email.com" required />
+                      <button class="create-ticket-btn" id="createTicketBtn">Create Ticket</button>
+                  </div>
+                  <div id="ticketResult" class="ticket-result" style="display: none;"></div>
               </div>
               <button class="save-trip-btn" id="saveTripBtn">Save Trip</button>
           </div>
@@ -1328,13 +1776,107 @@
               });
           });
           
+          // Add event listener to create ticket button
+          const createTicketBtn = document.getElementById('createTicketBtn');
+          if (createTicketBtn) {
+              createTicketBtn.addEventListener('click', async () => {
+                  const emailInput = document.getElementById('ticketEmail');
+                  const ticketResult = document.getElementById('ticketResult');
+                  
+                  if (!emailInput || !ticketResult) return;
+                  
+                  const email = emailInput.value.trim();
+                  if (!email || !email.includes('@')) {
+                      ticketResult.style.display = 'block';
+                      ticketResult.innerHTML = '<p class="error">Please enter a valid email address</p>';
+                      return;
+                  }
+                  
+                  // Disable button and show loading
+                  createTicketBtn.disabled = true;
+                  createTicketBtn.textContent = 'Creating...';
+                  ticketResult.style.display = 'block';
+                  ticketResult.innerHTML = '<p>Creating ticket...</p>';
+                  
+                  try {
+                      // Create a ticket for this trip
+                      const response = await fetch('http://localhost:5000/api/create_ticket', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                              email: email,
+                              itinerary: trip
+                          }),
+                      });
+                      
+                      const data = await response.json();
+                      
+                      if (response.ok) {
+                          // Show success message with the ticket ID
+                          ticketResult.innerHTML = `
+                              <div class="ticket-success">
+                                  <p><i class="fas fa-check-circle"></i> Ticket created successfully!</p>
+                                  <p><strong>Ticket ID:</strong> ${data.ticket_id}</p>
+                                  <p>You can use this ticket ID and your email to track your itinerary on our tracking page.</p>
+                                  <a href="tracker.html" class="ticket-link">Go to Tracking Page</a>
+                              </div>
+                          `;
+                          
+                          // Save the ticket ID locally
+                          localStorage.setItem('lastTicketId', data.ticket_id);
+                          localStorage.setItem('lastTicketEmail', email);
+                      } else {
+                          // Show error message
+                          ticketResult.innerHTML = `
+                              <div class="ticket-error">
+                                  <p><i class="fas fa-exclamation-circle"></i> Error: ${data.error || 'Could not create ticket'}</p>
+                              </div>
+                          `;
+                      }
+                  } catch (error) {
+                      console.error('Error creating ticket:', error);
+                      ticketResult.innerHTML = `
+                          <div class="ticket-error">
+                              <p><i class="fas fa-exclamation-circle"></i> Error: Could not create ticket. Please try again later.</p>
+                          </div>
+                      `;
+                  } finally {
+                      // Re-enable button
+                      createTicketBtn.disabled = false;
+                      createTicketBtn.textContent = 'Create Ticket';
+                  }
+              });
+          }
+          
           // Add event listener to save trip button
           const saveTripBtn = document.getElementById('saveTripBtn');
           if (saveTripBtn) {
               saveTripBtn.addEventListener('click', () => {
-                  // In a real application, you would save the trip to a database
-                  // For now, we'll just show a success message
-                  addMessage("Trip saved successfully! You can view it in your saved trips.", false);
+                  // Save trip to local storage
+                  try {
+                      // Get existing saved trips or initialize empty array
+                      const savedTrips = JSON.parse(localStorage.getItem('savedTrips') || '[]');
+                      
+                      // Add current trip with timestamp
+                      const tripToSave = {
+                          ...trip,
+                          saved_at: new Date().toISOString()
+                      };
+                      
+                      // Add to saved trips
+                      savedTrips.push(tripToSave);
+                      
+                      // Save back to local storage
+                      localStorage.setItem('savedTrips', JSON.stringify(savedTrips));
+                      
+                      // Show success message
+                      addMessage("Trip saved successfully! You can find it in your browser's local storage.", false);
+                  } catch (error) {
+                      console.error('Error saving trip:', error);
+                      addMessage("Sorry, there was a problem saving your trip.", false);
+                  }
               });
           }
       }, 100);
@@ -1423,105 +1965,6 @@
     }, 1000);
 });
 
-/*signin/signup error handling*/
-
-// Get the form elements
-const signUpForm = document.getElementById('signUpForm');
-const signInForm = document.getElementById('signInForm');
-
-// Only proceed if forms exist
-if (signUpForm && signInForm) {
-// Sign Up form fields and error messages
-const signUpUsername = document.getElementById('signUpUsername');
-const signUpEmail = document.getElementById('signUpEmail');
-const signUpPassword = document.getElementById('signUpPassword');
-
-const signUpUsernameError = document.getElementById('signUpUsernameError');
-const signUpEmailError = document.getElementById('signUpEmailError');
-const signUpPasswordError = document.getElementById('signUpPasswordError');
-
-// Sign In form fields and error messages
-const signInEmail = document.getElementById('signInEmail');
-const signInPassword = document.getElementById('signInPassword');
-
-const signInEmailError = document.getElementById('signInEmailError');
-const signInPasswordError = document.getElementById('signInPasswordError');
-
-  // Define email pattern for validation
-  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-
-// Sign Up form validation
-signUpForm.addEventListener('submit', (e) => {
-  e.preventDefault(); // Prevent form submission
-
-  let valid = true;
-
-  // Validate Username
-  if (signUpUsername.value.trim() === "") {
-    signUpUsernameError.textContent = "Username is required.";
-    signUpUsernameError.style.display = 'block';
-    valid = false;
-  } else {
-    signUpUsernameError.style.display = 'none';
-  }
-
-  // Validate Email
-  if (!emailPattern.test(signUpEmail.value)) {
-    signUpEmailError.textContent = "Please enter a valid email.";
-    signUpEmailError.style.display = 'block';
-    valid = false;
-  } else {
-    signUpEmailError.style.display = 'none';
-  }
-
-  // Validate Password
-  if (signUpPassword.value.trim() === "") {
-    signUpPasswordError.textContent = "Password is required.";
-    signUpPasswordError.style.display = 'block';
-    valid = false;
-  } else {
-    signUpPasswordError.style.display = 'none';
-  }
-
-  if (valid) {
-    // Submit the form if validation passes
-    alert('Sign Up Successful');
-    signUpForm.submit(); // Or your form submission logic here
-  }
-});
-
-// Sign In form validation
-signInForm.addEventListener('submit', (e) => {
-  e.preventDefault(); // Prevent form submission
-
-  let valid = true;
-
-  // Validate Email
-  if (!emailPattern.test(signInEmail.value)) {
-    signInEmailError.textContent = "Please enter a valid email.";
-    signInEmailError.style.display = 'block';
-    valid = false;
-  } else {
-    signInEmailError.style.display = 'none';
-  }
-
-  // Validate Password
-  if (signInPassword.value.trim() === "") {
-    signInPasswordError.textContent = "Password is required.";
-    signInPasswordError.style.display = 'block';
-    valid = false;
-  } else {
-    signInPasswordError.style.display = 'none';
-  }
-
-  if (valid) {
-    // Submit the form if validation passes
-    alert('Sign In Successful');
-    signInForm.submit(); // Or your form submission logic here
-  }
-});
-}
-
 document.addEventListener("DOMContentLoaded", function() {
     // Get reference to chat container
     const chatContainer = document.getElementById("chatContainer");
@@ -1551,6 +1994,482 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     }
 });
+
+// Add CSS for the date picker at the end of the file before the closing </script> tag
+
+const datepickerStyles = document.createElement('style');
+datepickerStyles.textContent = `
+    .date-picker-container {
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .date-input-container {
+        display: flex;
+        margin-top: 10px;
+        gap: 8px;
+    }
+    
+    #travel-date-picker {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.9);
+        color: #333;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    
+    .date-confirm-btn {
+        padding: 8px 16px;
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .date-confirm-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    /* Destination input styles */
+    .destination-input-container {
+        display: flex;
+        margin-top: 10px;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    
+    .destination-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.9);
+        color: #333;
+        font-size: 14px;
+    }
+    
+    .destination-confirm-btn {
+        padding: 8px 16px;
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .destination-confirm-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    /* Destination attractions styles */
+    .destination-attractions {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .destination-attractions h4 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        color: white;
+        font-size: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding-bottom: 8px;
+    }
+    
+    .attractions-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-bottom: 15px;
+        padding-right: 5px;
+    }
+    
+    .attraction-item {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+        padding: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .attraction-item:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+    }
+    
+    .attraction-item h5 {
+        margin-top: 0;
+        margin-bottom: 6px;
+        font-size: 15px;
+        color: white;
+    }
+    
+    .attraction-details {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .attraction-details .category {
+        background: rgba(0, 229, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    
+    .attraction-details .rating {
+        color: #ffde59;
+    }
+    
+    .attraction-item .description {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    /* Destination actions styles */
+    .destination-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+    }
+    
+    .confirm-btn {
+        padding: 8px 16px;
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        flex: 1;
+        transition: all 0.3s ease;
+    }
+    
+    .confirm-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    .secondary-btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        flex: 1;
+        transition: all 0.3s ease;
+    }
+    
+    .secondary-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Destination confirmation styles */
+    .destination-confirmation {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    
+    /* Flatpickr custom styles */
+    .flatpickr-calendar {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+        margin-top: 5px;
+    }
+    
+    .flatpickr-day.selected, 
+    .flatpickr-day.startRange, 
+    .flatpickr-day.endRange, 
+    .flatpickr-day.selected.inRange, 
+    .flatpickr-day.startRange.inRange, 
+    .flatpickr-day.endRange.inRange, 
+    .flatpickr-day.selected:focus, 
+    .flatpickr-day.startRange:focus, 
+    .flatpickr-day.endRange:focus, 
+    .flatpickr-day.selected:hover, 
+    .flatpickr-day.startRange:hover, 
+    .flatpickr-day.endRange:hover, 
+    .flatpickr-day.selected.prevMonthDay, 
+    .flatpickr-day.startRange.prevMonthDay, 
+    .flatpickr-day.endRange.prevMonthDay, 
+    .flatpickr-day.selected.nextMonthDay, 
+    .flatpickr-day.startRange.nextMonthDay, 
+    .flatpickr-day.endRange.nextMonthDay {
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+        border-color: transparent;
+    }
+    
+    .flatpickr-day.inRange, 
+    .flatpickr-day.prevMonthDay.inRange, 
+    .flatpickr-day.nextMonthDay.inRange {
+        background-color: rgba(0, 229, 255, 0.2);
+        border-color: transparent;
+    }
+    
+    /* Category selection styles */
+    .categories-container {
+        margin-top: 10px;
+        margin-bottom: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .categories-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+    
+    @media (max-width: 600px) {
+        .categories-list {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .category-item {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .category-item:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .category-checkbox {
+        margin-right: 8px;
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .category-item label {
+        font-size: 14px;
+        cursor: pointer;
+        flex: 1;
+    }
+    
+    .other-category {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+    }
+    
+    .other-interests-input {
+        flex: 1;
+        margin-left: 8px;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    
+    .confirm-categories-btn {
+        padding: 8px 16px;
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .confirm-categories-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    .interests-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        margin-bottom: 10px;
+    }
+    
+    .error-text {
+        color: #ff6b6b;
+        margin-bottom: 10px;
+    }
+    
+    .follow-up-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    /* Budget selector styles */
+    .budget-selector-container {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .budget-note {
+        margin-top: 0;
+        margin-bottom: 12px;
+        color: white;
+    }
+    
+    .budget-input-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        gap: 8px;
+    }
+    
+    .currency-symbol {
+        font-weight: bold;
+        font-size: 18px;
+        color: #00e5ff;
+    }
+    
+    .budget-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        font-size: 18px;
+        text-align: right;
+        font-weight: bold;
+    }
+    
+    .budget-input:focus {
+        outline: none;
+        border-color: #00e5ff;
+        box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.3);
+    }
+    
+    .budget-confirm-btn {
+        padding: 8px 16px;
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .budget-confirm-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+    
+    .budget-slider-container {
+        margin-bottom: 15px;
+    }
+    
+    .budget-slider {
+        width: 100%;
+        height: 8px;
+        -webkit-appearance: none;
+        background: linear-gradient(90deg, rgba(0, 229, 255, 0.5), rgba(180, 0, 255, 0.5));
+        border-radius: 4px;
+        outline: none;
+        margin-bottom: 8px;
+    }
+    
+    .budget-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease;
+    }
+    
+    .budget-slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        background: linear-gradient(45deg, #00e5ff, #b400ff);
+    }
+    
+    .budget-range-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .budget-presets {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .budget-preset-btn {
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+    }
+    
+    .budget-preset-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .trip-duration-note {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .trip-duration-note span {
+        font-weight: bold;
+        color: #00e5ff;
+    }
+`;
+document.head.appendChild(datepickerStyles);
 
         </script>
 

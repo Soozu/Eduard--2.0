@@ -4,6 +4,7 @@ import json
 from db_config import DB_CONFIG
 from datetime import datetime
 import uuid
+import time
 
 # Create a connection pool for better performance
 try:
@@ -559,4 +560,189 @@ def get_user_preferences(user_id, preference_type=None, limit=10):
         return preferences
     except Exception as e:
         print(f"Error getting user preferences: {e}")
-        return [] 
+        return []
+
+# Ticket Functions
+def create_ticket(ticket_data):
+    conn = get_connection()
+    if not conn:
+        return {"error": "Database connection failed"}
+        
+    cursor = conn.cursor()
+    
+    ticket_id = ticket_data['ticket_id']
+    email = ticket_data['email']
+    trip_id = ticket_data.get('trip_id')
+    itinerary = ticket_data.get('itinerary')
+    status = ticket_data.get('status', 'active')
+    created_at = ticket_data.get('created_at', datetime.now().isoformat())
+    updated_at = ticket_data.get('updated_at', datetime.now().isoformat())
+    
+    # Convert itinerary to JSON if present
+    itinerary_json = json.dumps(itinerary) if itinerary else None
+    
+    query = """
+        INSERT INTO tickets 
+        (ticket_id, email, trip_id, itinerary, status, created_at, updated_at) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    
+    params = (
+        ticket_id,
+        email,
+        trip_id,
+        itinerary_json,
+        status,
+        created_at,
+        updated_at
+    )
+    
+    try:
+        cursor.execute(query, params)
+        conn.commit()
+        return {"ticket_id": ticket_id}
+    except mysql.connector.Error as e:
+        print(f"Error creating ticket: {e}")
+        return {"error": "Failed to create ticket"}
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_ticket(ticket_id):
+    conn = get_connection()
+    if not conn:
+        return None
+        
+    cursor = conn.cursor(dictionary=True)
+    
+    query = "SELECT * FROM tickets WHERE ticket_id = %s"
+    params = (ticket_id,)
+    
+    try:
+        cursor.execute(query, params)
+        result = cursor.fetchone()
+        
+        if result:
+            # Parse JSON data if present
+            if result.get('itinerary'):
+                try:
+                    result['itinerary'] = json.loads(result['itinerary'])
+                except json.JSONDecodeError:
+                    result['itinerary'] = {}
+                    
+        return result
+    except mysql.connector.Error as e:
+        print(f"Error getting ticket: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_tickets_by_email(email):
+    conn = get_connection()
+    if not conn:
+        return []
+        
+    cursor = conn.cursor(dictionary=True)
+    
+    query = "SELECT * FROM tickets WHERE email = %s ORDER BY created_at DESC"
+    params = (email,)
+    
+    try:
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+        
+        # Parse JSON data for each ticket
+        for result in results:
+            if result.get('itinerary'):
+                try:
+                    result['itinerary'] = json.loads(result['itinerary'])
+                except json.JSONDecodeError:
+                    result['itinerary'] = {}
+                    
+        return results
+    except mysql.connector.Error as e:
+        print(f"Error getting tickets by email: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def update_ticket_status(ticket_id, status):
+    conn = get_connection()
+    if not conn:
+        return {"error": "Database connection failed"}
+        
+    cursor = conn.cursor()
+    
+    updated_at = datetime.now().isoformat()
+    
+    query = "UPDATE tickets SET status = %s, updated_at = %s WHERE ticket_id = %s"
+    params = (status, updated_at, ticket_id)
+    
+    try:
+        cursor.execute(query, params)
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            return {"success": True, "ticket_id": ticket_id, "status": status}
+        else:
+            return {"error": "Ticket not found or status not updated"}
+    except mysql.connector.Error as e:
+        print(f"Error updating ticket status: {e}")
+        return {"error": "Failed to update ticket status"}
+    finally:
+        cursor.close()
+        conn.close()
+
+def delete_ticket(ticket_id, email=None):
+    """
+    Delete a ticket from the database
+    
+    Args:
+        ticket_id (str): The ID of the ticket to delete
+        email (str, optional): Email for verification. If provided, will only delete if it matches
+    
+    Returns:
+        dict: Result of the operation with success or error message
+    """
+    conn = get_connection()
+    if not conn:
+        return {"error": "Database connection failed"}
+        
+    cursor = conn.cursor()
+    
+    # First verify the ticket exists and optionally check email
+    verify_query = "SELECT id FROM tickets WHERE ticket_id = %s"
+    verify_params = [ticket_id]
+    
+    if email:
+        verify_query += " AND email = %s"
+        verify_params.append(email)
+    
+    try:
+        cursor.execute(verify_query, verify_params)
+        ticket = cursor.fetchone()
+        
+        if not ticket:
+            if email:
+                return {"error": "Ticket not found or email doesn't match"}
+            else:
+                return {"error": "Ticket not found"}
+        
+        # Ticket exists and email matches (if provided), proceed with deletion
+        delete_query = "DELETE FROM tickets WHERE ticket_id = %s"
+        cursor.execute(delete_query, (ticket_id,))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            return {"success": True, "message": "Ticket successfully deleted"}
+        else:
+            return {"error": "Failed to delete ticket"}
+            
+    except mysql.connector.Error as e:
+        print(f"Error deleting ticket: {e}")
+        return {"error": f"Database error: {str(e)}"}
+    finally:
+        cursor.close()
+        conn.close() 
