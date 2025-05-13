@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>WerTigo</title>
+
+        <!-- FONT AWESOME -->
+         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" class="stylesheet">
+         <link rel="stylesheet" 
+         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Main CSS-->
+        <link rel="stylesheet" href="style.css">
+        <!-- Auth CSS -->
+        <link rel="stylesheet" href="auth.css">
+        
+        <!-- Add a status message container for displaying success/error messages -->
+        <style>
+            .status-message {
+                padding: 10px 15px;
+                margin-top: 15px;
+                border-radius: 8px;
+                text-align: center;
+                display: none;
+                font-weight: 500;
+            }
+            .status-message.success {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            .status-message.error {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+            .loading {
+                display: none;
+                margin-left: 10px;
+                animation: rotate 1s linear infinite;
+            }
+            @keyframes rotate {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+
+        <!-- HEADER DESIGN -->
+        <header class="header">
+         <a href="#" class="logo" id="menu"><img src="LOGO.png" class="lgo"><span> WerTigo </span></a>
+        
+         <i class="fa-solid fa-bars" id="menu-icon"></i>
+         <nav class="navbar">
+            
+            <a href="#home" class="active"><span>Home </span></a>
+            <a href="#sign"> <span>Sign Up/Sign In</span></a>
+            <a href="#about"> <span>About</span></a>
+
+         </nav>
+        
+
+         
+        </header>
+
+        <!-- Home section design-->
+
+        <section class="home" id="home">
+
+        <div class="home-content">
+
+            
+
+            <h1>I am WerTigo,</h1>
+            <h1> your travel planning buddy! </h1>
+            <h3>Where do you want to go?</h3>
+            <br>
+            <br>
+            <h3> Do you want to go in <span class="multiple-text"></span>?</h3>
+                
+                <a href="http://localhost:8000/" class="btn"> Let's plan a trip!! </a>
+            </div>
+
+            
+            <div class="slides">
+                <div class="slide slide-1" data-bg="DESTINATIONS/BOHOL.jpg">
+                    <img src="DESTINATIONS/BOHOL.jpg" alt="">
+                </div>
+                <div class="slide slide-2" data-bg="DESTINATIONS/BORACAY.jpg">
+                    <img src="DESTINATIONS/BORACAY.jpg" alt="">
+                </div>
+                <div class="slide slide-3" data-bg="DESTINATIONS/ELNIDO.webp">
+                    <img src="DESTINATIONS/ELNIDO.webp" alt="">
+                </div>
+            </div>
+            
+            
+    
+
+        <div class="home-img">
+                    <img src="img/dp-wbg-t.png" alt="">
+
+        </div>
+        </div>
+        </section>
+
+        <!--Sign In/Sign Up-->
+
+        <section class="sign" id="sign">
+            <h3 class="heading">Sign <span>Up</span> or Sign <span>In</span></h3>
+          
+            <div class="sign-container">
+              <!-- Sign Up Form -->
+              <div class="sign-box" id="signUpBox">
+                <h4>Sign Up</h4>
+                <form id="signUpForm">
+                    <input type="text" id="signUpUsername" placeholder="Username" required>
+                    <span id="signUpUsernameError" class="error-message"></span>
+            
+                    <input type="email" id="signUpEmail" placeholder="Email" required>
+                    <span id="signUpEmailError" class="error-message"></span>
+            
+                    <input type="password" id="signUpPassword" placeholder="Password" required>
+                    <span id="signUpPasswordError" class="error-message"></span>
+            
+                    <button type="submit">Create Account <span class="loading" id="signUpLoading"><i class="fas fa-spinner"></i></span></button>
+                    <div id="signUpStatus" class="status-message"></div>
+                  </form>
+                <p class="gn">Already have an account?<a href="javascript:void(0)" id="toggleToSignIn"> Sign In</a></p>
+              </div>
+          
+              <!-- Sign In Form -->
+              <div class="sign-box" id="signInBox">
+                <h4>Sign In</h4>
+                <form id="signInForm">
+                    <input type="email" id="signInEmail" placeholder="Email" required>
+                    <span id="signInEmailError" class="error-message"></span>
+            
+                    <input type="password" id="signInPassword" placeholder="Password" required>
+                    <span id="signInPasswordError" class="error-message"></span>
+            
+                    <button type="submit">Log In <span class="loading" id="signInLoading"><i class="fas fa-spinner"></i></span></button>
+                    <div id="signInStatus" class="status-message"></div>
+                  </form>
+                <p class="gn">Don't have an account?<a href="javascript:void(0)" id="toggleToSignUp"> Sign Up</a></p>
+              </div>
+            </div>
+          </section>
+          
+
+        <!--about section!-->
+       <section class="about" id="about">
+        <h3 class="info-title">About <span> Us </span></h3>
+        <div class="about-img">
+            <img src="GAB.jpg" alt="">
+            <h3 class="info-title">Christian Gabrielle B. Dalida</h3>
+
+        </div>
+
+
+
+
+        <section class="info-section" id="info-section">
+            <h2 class="section-title"></h2>
+
+
+            <div class="info-container container grid">
+            
+                <div class="about grid" id="about">
+                    <div class="about-content">
+                        
+                            <p class="about-desc">
+                                I am Christian Gabrielle B. Dalida, a 4th year Computer Science student from Cavite State University - Imus. I grew up surrounded by technology, which explains my passion for it. I am interested in developing software, AI, and data analytics. Though I'm open to anything inline with Computer Science, and there isn't anything I can't learn!
+                            </p>
+
+                        <!--<a href="resume.pdf" download="" target="_blank " class="button abt-btn"></a>-->
+
+
+                    </div>
+
+                <img src="LOGO.png" alt="" srcset="" class="abt-img">
+                </div>
+    </div>
+
+    
+    <div class="about-img">
+        <img src="ED.jpg" alt="">
+        <h3 class="info-title">Eduard Florence G. Domingo</h3>
+    </div>
+        <section class="info-section" id="info-section">
+            <h2 class="section-title"></h2>
+    
+    
+            <div class="info-container container grid">
+            
+                <div class="about grid" id="about">
+                    <div class="about-content">
+                        
+                            <p class="about-desc">
+                                I am Eduard Florence G. Domingo, a 4th year Computer Science student from Cavite State University - Imus campus. I am born on September 26, 2002. I love to fiddle around technologies that's why I chose this course, to explore more things that I didn't get a chance to learn. I am that kind of person who wants to learn something new especially that is aligned with my course.
+                            </p>
+    
+                        <!--<a href="resume.pdf" download="" target="_blank " class="button abt-btn"></a>-->
+    
+    
+                    </div>
+    
+                <!-- Temporarily comment out or replace the missing image -->
+                <!-- <img src="img/transparent-pf.png" alt="" srcset="" class="abt-img"> -->
+                <img src="LOGO.png" alt="" srcset="" class="abt-img">
+                </div>
+    </div>
+    
+
+    <div class="about-img">
+        <img src="MATT.jpg" alt="">
+        <h3 class="info-title">Matthew Daniel A. Sadaba</h3>
+    </div>
+        <section class="info-section" id="info-section">
+            <h2 class="section-title"></h2>
+    
+    
+            <div class="info-container container grid">
+            
+                <div class="about grid" id="about">
+                    <div class="about-content">
+                        
+                            <p class="about-desc">
+                                I am Eduard Florence G. Domingo, a 4th year Computer Science student from Cavite State University - Imus campus. I am born on September 26, 2002. I love to fiddle around technologies that's why I chose this course, to explore more things that I didn't get a chance to learn. I am that kind of person who wants to learn something new especially that is aligned with my course.
+                            </p>
+    
+                        <!--<a href="resume.pdf" download="" target="_blank " class="button abt-btn"></a>-->
+    
+    
+                    </div>
+    
+                <!-- Temporarily comment out or replace the missing image -->
+                <!-- <img src="img/transparent-pf.png" alt="" srcset="" class="abt-img"> -->
+                <img src="LOGO.png" alt="" srcset="" class="abt-img">
+                </div>
+    </div>
+   
+
+                <!-- EDUCATION AND EXPERIENCE
+
+                
+            <div class=" container-qualification">
+
+             <main class="row">
+                <section class="col">
+                        <header class="title">
+                            <h2>EDUCATION</h2>
+                        </header>
+
+                        <div class="contents">
+
+                            <div class="box">
+                                <h4>2017 - 2018</h4>
+                                <h3>Junior High School</h3>
+                                <p> Southern Philippines Institute of Science and Technology</p>
+                            </div>
+
+                            <div class="box">
+                                <h4>2018-2020</h4>
+                                <h3>Senior High School</h3>
+                                <p> STI College Dasmarinas <br>
+                                ICT in Mobile Application and Web Development</p>
+                            </div>
+
+                            <div class="box">
+                                <h4>2021 - Present</h4>
+                                <h3> College</h3>
+                                <p> Cavite State University - Imus Campus <br>
+                                    Bachelor of Science in Computer Science
+                                </p>
+                            </div>
+
+                        </div>
+                </section>
+-->
+
+                <!--- ****** END********-->
+
+
+
+                <!-- EXPERIENCE 
+
+                
+                <section class="col">
+                    <header class="title">
+                        <h2>EXPERIENCE</h2>
+                    </header>
+                    <div class="contents">
+                        <div class="box">
+                            <h4>04/2024 - 06/2024</h4>
+                            <h3>Full-stack Developer</h3>
+                            <p> Developed a web-based point-of-sale system using HTML, CSS, MySQL, JavaScript in partial fullfilment of the subject Programming Languages</p>
+                        </div>
+
+                        <div class="box">
+                            <h4>03/2024 - 06/2024</h4>
+                            <h3>Lead Game Developer</h3>
+                            <p> Programmed the environment, player, and enemy movement, colliders, and physics. </p>
+                        </div>
+                    </div>
+               </section>
+            </main>
+            </div>
+-->
+
+                <!---- EXPERIENCE END-->
+
+
+
+                <!-- experience 
+                <div class="experience">
+                    <h3 class="info-title"> Experience in an Academic Environment</h3>
+
+                    <div class="experience-content grid">
+                        <div class="experience-data-grid"> 
+                            <h2 class="experience-company"> Web Development</h2>
+                            
+
+                        </div>
+
+                        <h3 class="experience-profession"> <span>Full Stack Web Developer</span></h3>
+                        <h2><b>04/24 - 06/24</b></h2> 
+                        <p class="exp-desc">
+                            Made a Point of Sale system of Computer Parts & Peripherals in partial fullfilment of the subject Programming Languages. HTML,CSS, JS, PHP, MySQL
+                        </p>
+                    </div>
+
+
+                    <div class="experience-data grid"> 
+                    <h2 class="experience-company">Unity
+                    </h2>
+
+                
+
+                <h3 class="experience-profession"> <span>Lead Programmer</span></h3>
+                <h2> <b>04/24 - 06/24</b></h2>
+                <p class="exp-desc">
+                Coded the player character's & enemies movement, the game's environment, and other interactables in partial fullfilment of the subject CS Elective - Game Development
+                </p>
+                </div>
+                </div>
+            </div>
+        </div>
+-->
+    
+
+      
+
+        
+
+        <!--- SKILLS 
+
+        <div class="skills">
+        <h3 class="info-title">Skills</h3>
+        
+
+    
+
+        <div class="skills-content grid">
+            <div class="skills-box">
+                <img src="img/icons/html-1.svg" alt="" srcset="">
+                <span class="skills-name">HTML</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/css-3.svg" alt="" srcset="">
+                <span class="skills-name">CSS</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/javascript-1.svg" alt="" srcset="">
+                <span class="skills-name">Javascript</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/java-4.svg" alt="" srcset="">
+                <span class="skills-name">Java</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/python-5.svg" alt="" srcset="">
+                <span class="skills-name">Python</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/c--4.svg" alt="" srcset="">
+                <span class="skills-name">C#</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/php.png" alt="" srcset="">
+                <span class="skills-name">PHP</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/unity-logo.svg" alt="" srcset="">
+                <span class="skills-name">Unity</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/premiere-pro-cc.svg" alt="" srcset="">
+                <span class="skills-name">Adobe Premiere Pro</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/adobe-photoshop-2.svg" alt="" srcset="">
+                <span class="skills-name">Adobe Photoshop</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/after-effects-1.svg" alt="" srcset="">
+                <span class="skills-name">Adobe After Effects</span>
+            </div>
+            <div class="skills-box">
+                <img src="img/icons/adobe-illustrator-cs6.svg" alt="" srcset="">
+                <span class="skills-name">Adobe Illustrator</span>
+            </div>
+
+            
+        </div>
+        </div>
+    
+
+        </section>
+        
+        <div class="about-content">
+            <h2 class="heading">ABOUT <span>Me</span></h2>
+            <h3> Programmer </h3>
+            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Non nesciunt minima sed voluptates, veniam voluptatem ullam repellat vel soluta! Nihil labore, enim dolor odio iusto atque nobis accusantium soluta obcaecati. Voluptates qui temporibus odit perferendis rerum tempora laborum, iste officia est incidunt dolores nesciunt eius, facere laudantium corporis omnis quod.</p>
+             <a href="" class="btn"> Read more</a>
+    
+        </div>
+
+       </section>
+       
+-->
+
+       <!-- services section 
+      <section class="services" id="services">
+       <h2 class="heading">My <span> Services</span></h2>
+
+       <div class="services-container">
+            <div class="services-box">
+             <i class="fa-solid fa-code"> </i>
+             <h3> General Programming </h3>
+             <p> Website Development using HTML, CSS, and JavaScript. Programming using Java, Python, C++</p>
+            
+            </div>
+
+            <div class="services-box">
+                <i class="fa-solid fa-gamepad"> </i>
+                <h3> Game Development</h3>
+                <p> Programming of player and environment's movement, colliders, physics;  configuration of anything in the hierarchy and game scene. Animation of 3D models. </p>
+               
+               </div>
+
+               <div class="services-box">
+                <i class="fa-solid fa-photo-film"></i>
+                <h3> Photo & Video Editing</h3>
+                <p> Design and layout of banner, flyer, stream overlay, book covers; Color grading of photosets. Editing and Post Processing of Videos
+                </p>
+           
+
+               </div>
+
+
+
+         </div>
+       </section>   
+-->
+   
+       <!-- PORTFOLIO SECTION 
+
+
+     <section class="portfolio" id="portfolio">
+
+            <h2 class="heading">Latest <span>Projects</span></h2>
+
+
+            <div class="portfolio-container">
+                <div class="portfolio-box">
+                    <video controls src="assets/dragon-lodi.mp4" alt="">
+                    <div class="portfolio-layer">
+                        <h4>Game Development</h4>
+                        <p>Animation and Effects</p>
+                        <a href="img/colorref.png"><i class="fa-solid fa-up-right-from-square"></i> </a>
+                    </div>
+                </div>
+
+                <div class="portfolio-box">
+                    <video controls src="assets/gamedev-vid1.mp4" alt="">
+                    <div class="portfolio-layer">
+                        <h4>Game Development/h4>
+                        <p>Movement and Environment</p>
+                        <i class="fa-solid fa-up-right-from-square"></i>
+                    </div>
+                </div>
+
+                <div class="portfolio-box">
+                    <img src="assets/portfolio-4.png" alt="">
+                    <div class="portfolio-layer">
+                        <h4>Game Development</h4>
+                        <p> Environment and Player Movement</p>
+                        <a href="assets/portfolio-4.png" target="_blank"><i class="fa-solid fa-up-right-from-square"></i></a>
+                    </div>
+                </div>
+
+                <div class="portfolio-box">
+                    <img src="assets/portfolio-1.png" alt="">
+                    <div class="portfolio-layer">
+                        <h4>Web Development</h4>
+                        <p>Web Based Point of Sale System - Home Page</p>
+                        <a href="assets/portfolio-1.png" target="_blank"><i class="fa-solid fa-up-right-from-square"></i></a>
+                    </div>
+                </div>
+
+                <div class="portfolio-box">
+                    <img src="assets/portfolio-2.png" alt="">
+                    <div class="portfolio-layer">
+                        <h4>Web Development</h4>
+                        <p>Store Page</p>
+                        <a href="assets/portfolio-2.png" target="_blank"><i class="fa-solid fa-up-right-from-square"></i></a>
+                    </div>
+                </div>
+
+                <div class="portfolio-box">
+                    <img src="assets/portfolio-3.png" alt="">
+                    <div class="portfolio-layer">
+                        <h4>Web Development</h4>
+                        <p>Admin Panel of POS system</p>
+                        <a href="assets/portfolio-3.png" target="_blank"><i class="fa-solid fa-up-right-from-square"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            
+
+       </section>
+-->
+
+       <!--Contact Section
+       <section class="contact" id="contact">
+        <h2 class="heading">Contact <Span>Me</Span></h2>
+
+        <form action="https://api.web3forms.com/submit" method="POST">
+            <div class="input-box">
+                <input type="hidden" name="access_key" value="ca8d9b3e-9b9c-43a7-b57c-4d29ec927478">
+
+                <input type="text" name="Full Name" id="" placeholder="Full Name" required>
+            
+                <input type="email" name="Email Address" id="" placeholder="Email Address" required>
+            </div>
+
+            <div class="input-box">
+                <input type="number" name="Mobile Number" id="" 
+                maxlength="11" placeholder="Mobile Number" required>
+
+             <input type="text" class="text" placeholder="Email Subject" name="Email Subject" required>
+            </div>
+
+            <textarea name="Message" id="" cols="30" rows="10" placeholder="Your Message"></textarea>
+            <input type="submit" class = "btn" required>
+        </form>
+       </section>
+
+-->
+       <!-- FOOTER -->
+
+       <footer class="footer">
+            <div class="footer-text">
+                <p> Website created by Christian Gabrielle Dalida</p>
+            </div>
+
+
+
+            <div class="footer-iconTop">
+                <a href="home.html" class=""><i class="fa-solid fa-angle-up"> </i></a>
+
+
+
+
+                
+
+
+            </div>
+
+
+       </footer>
+       
+
+
+
+    <!-- scrollreveal js -->
+    <script src="https://unpkg.com/scrollreveal"></script>
+
+    <!-- TypedJS -->
+<script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js">
+
+</script>
+
+
+     
+    <!-- MAIN JS -->
+    <script src="main.js"></script>
+
+    <script>
+    // DOM Elements
+    // Don't redeclare these variables since they are already declared in main.js
+    /*const signUpForm = document.getElementById('signUpForm');
+    const signInForm = document.getElementById('signInForm');
+    const toggleToSignInLink = document.getElementById('toggleToSignIn');
+    const toggleToSignUpLink = document.getElementById('toggleToSignUp');
+    const signUpBox = document.getElementById('signUpBox');
+    const signInBox = document.getElementById('signInBox');*/
+
+    // Use these DOM elements directly without redeclaration
+    const signUpForm = document.getElementById('signUpForm');
+    const signInForm = document.getElementById('signInForm');
+    
+    // User Authentication and Session Management
+    const API_BASE_URL = 'http://localhost:5000'; // Change this to your actual backend URL
+    let authState = {
+      sessionId: null,
+      isLoggedIn: false,
+      userId: null,
+      username: null,
+      email: null
+    };
+
+    // Load auth state from localStorage on page load
+    function loadAuthState() {
+      const savedAuthState = localStorage.getItem('authState');
+      if (savedAuthState) {
+        authState = JSON.parse(savedAuthState);
+        if (authState.isLoggedIn) {
+          console.log(`User logged in: ${authState.username}`);
+          // Update UI based on login state
+          updateUIForAuthState();
+        }
+      }
+    }
+
+    // Save auth state to localStorage
+    function saveAuthState() {
+      localStorage.setItem('authState', JSON.stringify(authState));
+    }
+
+    // Update UI elements based on authentication state
+    function updateUIForAuthState() {
+      if (authState.isLoggedIn) {
+        // Change the Sign Up/Sign In section
+        const signSection = document.getElementById('sign');
+        if (signSection) {
+          signSection.innerHTML = `
+            <h3 class="heading">Welcome, <span>${authState.username}</span>!</h3>
+            <div class="welcome-message">
+                <p>You are now logged in as ${authState.email}</p>
+                <button id="logoutBtn" class="primary-btn">Log Out</button>
+                <a href="http://localhost:8000/" class="secondary-btn">Start Planning</a>
+            </div>
+          `;
+          
+          // Add logout button functionality
+          document.getElementById('logoutBtn').addEventListener('click', logout);
+        }
+        
+        // Update navigation links if needed
+        const signUpLink = document.querySelector('a[href="#sign"]');
+        if (signUpLink) {
+          signUpLink.textContent = 'My Account';
+        }
+      }
+    }
+
+    // Initialize session on page load
+    async function initSession() {
+      // Check if we already have a session ID
+      if (authState.sessionId) {
+        // Validate the existing session
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/session/${authState.sessionId}`);
+          if (response.ok) {
+            console.log('Using existing session:', authState.sessionId);
+            return;
+          }
+        } catch (error) {
+          console.log('Existing session invalid, creating new one');
+        }
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/create_session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          authState.sessionId = data.session_id;
+          saveAuthState();
+          console.log('Session created:', authState.sessionId);
+        }
+      } catch (error) {
+        console.error('Error creating session:', error);
+      }
+    }
+
+    // Register new user
+    async function register(username, email, password) {
+      try {
+        // Show loading indicator
+        document.getElementById('signUpLoading').style.display = 'inline-block';
+        
+        const response = await fetch(`${API_BASE_URL}/api/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username,
+            email,
+            password,
+            previous_session_id: authState.sessionId
+          })
+        });
+        
+        const data = await response.json();
+        
+        // Hide loading indicator
+        document.getElementById('signUpLoading').style.display = 'none';
+        
+        if (response.ok) {
+          // Update auth state
+          authState.isLoggedIn = true;
+          authState.userId = data.user.id;
+          authState.username = data.user.username;
+          authState.email = data.user.email;
+          authState.sessionId = data.session_id;
+          
+          saveAuthState();
+          updateUIForAuthState();
+          
+          // Show success message
+          showStatusMessage('signUpStatus', 'Account created successfully!', 'success');
+          
+          // Redirect after a short delay
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 2000);
+          
+          return { success: true };
+        } else {
+          showStatusMessage('signUpStatus', `Error: ${data.error}`, 'error');
+          return { success: false, error: data.error };
+        }
+      } catch (error) {
+        document.getElementById('signUpLoading').style.display = 'none';
+        showStatusMessage('signUpStatus', 'Network error. Please try again.', 'error');
+        console.error('Registration error:', error);
+        return { success: false, error: 'Network error' };
+      }
+    }
+
+    // Login user
+    async function login(email, password) {
+      try {
+        // Show loading indicator
+        document.getElementById('signInLoading').style.display = 'inline-block';
+        
+        const response = await fetch(`${API_BASE_URL}/api/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            previous_session_id: authState.sessionId
+          })
+        });
+        
+        const data = await response.json();
+        
+        // Hide loading indicator
+        document.getElementById('signInLoading').style.display = 'none';
+        
+        if (response.ok) {
+          // Update auth state
+          authState.isLoggedIn = true;
+          authState.userId = data.user.id;
+          authState.username = data.user.username;
+          authState.email = data.user.email;
+          authState.sessionId = data.session_id;
+          
+          saveAuthState();
+          updateUIForAuthState();
+          
+          // Show success message
+          showStatusMessage('signInStatus', 'Logged in successfully!', 'success');
+          
+          // Redirect after a short delay
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 2000);
+          
+          return { success: true };
+        } else {
+          showStatusMessage('signInStatus', `Error: ${data.error}`, 'error');
+          return { success: false, error: data.error };
+        }
+      } catch (error) {
+        document.getElementById('signInLoading').style.display = 'none';
+        showStatusMessage('signInStatus', 'Network error. Please try again.', 'error');
+        console.error('Login error:', error);
+        return { success: false, error: 'Network error' };
+      }
+    }
+
+    // Logout user
+    function logout() {
+      // Clear the auth state
+      authState.isLoggedIn = false;
+      authState.userId = null;
+      authState.username = null;
+      authState.email = null;
+      // Keep the session ID for guest usage
+      
+      saveAuthState();
+      
+      // Reload the page to reset the UI
+      window.location.reload();
+    }
+
+    // Toggle between sign up and sign in forms
+    function toggleForms() {
+      // Set initial visibility - signup visible, signin hidden
+      signUpBox.style.display = 'block';
+      signInBox.style.display = 'none';
+      
+      if (toggleToSignInLink) {
+        toggleToSignInLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          signUpBox.style.display = 'none';
+          signInBox.style.display = 'block';
+        });
+      }
+      
+      if (toggleToSignUpLink) {
+        toggleToSignUpLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          signInBox.style.display = 'none';
+          signUpBox.style.display = 'block';
+        });
+      }
+    }
+
+    // Handle sign up form submission
+    function handleSignUpForm() {
+      if (signUpForm) {
+        console.log('Setting up sign up form handler');
+        signUpForm.addEventListener('submit', async function(e) {
+          console.log('Sign Up form submitted');
+          e.preventDefault();
+          
+          // Clear previous error messages
+          document.querySelectorAll('.error-message').forEach(el => {
+            el.style.display = 'none';
+          });
+          
+          // Get form values
+          const username = document.getElementById('signUpUsername').value.trim();
+          const email = document.getElementById('signUpEmail').value.trim();
+          const password = document.getElementById('signUpPassword').value.trim();
+          
+          console.log('Form values:', { username, email, passwordLength: password.length });
+          
+          // Validate inputs (basic validation)
+          let valid = true;
+          
+          if (username === '') {
+            document.getElementById('signUpUsernameError').textContent = 'Username is required';
+            document.getElementById('signUpUsernameError').style.display = 'block';
+            valid = false;
+          }
+          
+          if (email === '' || !email.includes('@')) {
+            document.getElementById('signUpEmailError').textContent = 'Valid email is required';
+            document.getElementById('signUpEmailError').style.display = 'block';
+            valid = false;
+          }
+          
+          if (password === '' || password.length < 6) {
+            document.getElementById('signUpPasswordError').textContent = 'Password must be at least 6 characters';
+            document.getElementById('signUpPasswordError').style.display = 'block';
+            valid = false;
+          }
+          
+          if (!valid) {
+            console.log('Validation failed');
+            return;
+          }
+          
+          console.log('Calling register function...');
+          // Submit to server
+          const result = await register(username, email, password);
+          console.log('Register result:', result);
+          
+          if (result.success) {
+            // Successful registration - show success message briefly before redirecting
+            alert('Registration successful! Redirecting to the app...');
+            setTimeout(() => {
+              window.location.href = 'http://localhost:8000/';
+            }, 1500);
+          } else {
+            // Show error on the form
+            document.getElementById('signUpEmailError').textContent = result.error || 'Registration failed. Please try again.';
+            document.getElementById('signUpEmailError').style.display = 'block';
+          }
+        });
+      } else {
+        console.error('Sign up form not found in the DOM');
+      }
+    }
+
+    // Handle sign in form submission
+    function handleSignInForm() {
+      if (signInForm) {
+        console.log('Setting up sign in form handler');
+        signInForm.addEventListener('submit', async function(e) {
+          console.log('Sign In form submitted');
+          e.preventDefault();
+          
+          // Clear previous error messages
+          document.querySelectorAll('.error-message').forEach(el => {
+            el.style.display = 'none';
+          });
+          
+          // Get form values
+          const email = document.getElementById('signInEmail').value.trim();
+          const password = document.getElementById('signInPassword').value.trim();
+          
+          console.log('Form values:', { email, passwordLength: password.length });
+          
+          // Validate inputs (basic validation)
+          let valid = true;
+          
+          if (email === '' || !email.includes('@')) {
+            document.getElementById('signInEmailError').textContent = 'Valid email is required';
+            document.getElementById('signInEmailError').style.display = 'block';
+            valid = false;
+          }
+          
+          if (password === '') {
+            document.getElementById('signInPasswordError').textContent = 'Password is required';
+            document.getElementById('signInPasswordError').style.display = 'block';
+            valid = false;
+          }
+          
+          if (!valid) {
+            console.log('Validation failed');
+            return;
+          }
+          
+          console.log('Calling login function...');
+          // Submit to server
+          const result = await login(email, password);
+          console.log('Login result:', result);
+          
+          if (result.success) {
+            // Successful login - show success message briefly before redirecting
+            alert('Login successful! Redirecting to the app...');
+            setTimeout(() => {
+              window.location.href = 'http://localhost:8000/';
+            }, 1500);
+          } else {
+            // Show error on the form
+            document.getElementById('signInEmailError').textContent = result.error || 'Login failed. Please check your credentials.';
+            document.getElementById('signInEmailError').style.display = 'block';
+          }
+        });
+      } else {
+        console.error('Sign in form not found in the DOM');
+      }
+    }
+
+    // Show status message
+    function showStatusMessage(elementId, message, type) {
+      const statusElement = document.getElementById(elementId);
+      statusElement.textContent = message;
+      statusElement.className = `status-message ${type}`;
+      statusElement.style.display = 'block';
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        statusElement.style.display = 'none';
+      }, 5000);
+    }
+
+    // Initialize everything when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded. Checking form elements...');
+      
+      // Check if form elements exist
+      console.log('signUpForm exists:', !!document.getElementById('signUpForm'));
+      console.log('signInForm exists:', !!document.getElementById('signInForm'));
+      console.log('signUpBox exists:', !!document.getElementById('signUpBox'));
+      console.log('signInBox exists:', !!document.getElementById('signInBox'));
+      console.log('toggleToSignIn exists:', !!document.getElementById('toggleToSignIn'));
+      console.log('toggleToSignUp exists:', !!document.getElementById('toggleToSignUp'));
+      
+      // Re-get the elements to ensure we're using the latest DOM
+      const signUpForm = document.getElementById('signUpForm');
+      const signInForm = document.getElementById('signInForm');
+      const signUpBox = document.getElementById('signUpBox');
+      const signInBox = document.getElementById('signInBox');
+      const toggleToSignInLink = document.getElementById('toggleToSignIn');
+      const toggleToSignUpLink = document.getElementById('toggleToSignUp');
+      
+      // Set initial form visibility directly
+      if (signUpBox && signInBox) {
+        signUpBox.style.display = 'block';
+        signInBox.style.display = 'none';
+        console.log('Initial form visibility set');
+      } else {
+        console.error('Could not set initial form visibility - elements not found');
+      }
+      
+      loadAuthState();
+      initSession();
+      toggleForms();
+      
+      // Manually attach event handlers to forms
+      if (signUpForm) {
+        console.log('Manually attaching signup form submit handler');
+        signUpForm.onsubmit = async function(e) {
+          console.log('Sign Up form submitted (direct handler)');
+          e.preventDefault();
+          
+          // Get form values
+          const username = document.getElementById('signUpUsername').value;
+          const email = document.getElementById('signUpEmail').value;
+          const password = document.getElementById('signUpPassword').value;
+          
+          console.log('Form values:', { username, email, password: password ? '****' : 'empty' });
+          
+          // Show a message to confirm the form was submitted
+          document.getElementById('signUpStatus').textContent = 'Form submitted!';
+          document.getElementById('signUpStatus').className = 'status-message success';
+          document.getElementById('signUpStatus').style.display = 'block';
+          
+          // Call the register function
+          try {
+            const result = await register(username, email, password);
+            console.log('Registration result:', result);
+          } catch (error) {
+            console.error('Error during registration:', error);
+          }
+        };
+      }
+      
+      if (signInForm) {
+        console.log('Manually attaching signin form submit handler');
+        signInForm.onsubmit = async function(e) {
+          console.log('Sign In form submitted (direct handler)');
+          e.preventDefault();
+          
+          // Get form values
+          const email = document.getElementById('signInEmail').value;
+          const password = document.getElementById('signInPassword').value;
+          
+          console.log('Form values:', { email, password: password ? '****' : 'empty' });
+          
+          // Show a message to confirm the form was submitted
+          document.getElementById('signInStatus').textContent = 'Form submitted!';
+          document.getElementById('signInStatus').className = 'status-message success';
+          document.getElementById('signInStatus').style.display = 'block';
+          
+          // Call the login function
+          try {
+            const result = await login(email, password);
+            console.log('Login result:', result);
+          } catch (error) {
+            console.error('Error during login:', error);
+          }
+        };
+      }
+      
+      // If already logged in, update UI
+      if (authState.isLoggedIn) {
+        updateUIForAuthState();
+      }
+    });
+    </script>
+
+    <!-- Carousel/Slides JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slides = document.querySelectorAll('.slide');
+            let currentSlide = 0;
+            
+            function showSlide(index) {
+                slides.forEach((slide, i) => {
+                    if (i === index) {
+                        slide.style.display = 'block';
+                    } else {
+                        slide.style.display = 'none';
+                    }
+                });
+            }
+            
+            function nextSlide() {
+                currentSlide = (currentSlide + 1) % slides.length;
+                showSlide(currentSlide);
+            }
+            
+            // Initialize with the first slide
+            showSlide(0);
+            
+            // Auto-advance slides every 5 seconds
+            setInterval(nextSlide, 5000);
+        });
+    </script>
+
+    </body>
+</html>

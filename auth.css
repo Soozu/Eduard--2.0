@@ -1,0 +1,231 @@
+/* Authentication Styles for WerTigo Travel App */
+
+.sign-container {
+  display: flex;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.sign-box {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  transition: all 0.3s ease;
+  margin: 20px;
+  display: block;
+}
+
+/* Remove the default display:none so JavaScript can control visibility */
+#signInBox {
+  /* The display property will be controlled by JavaScript */
+}
+
+.sign-box h4 {
+  color: #abf600;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.sign-box form {
+  display: flex;
+  flex-direction: column;
+}
+
+.sign-box input {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+.sign-box input:focus {
+  outline: none;
+  border-color: #abf600;
+  box-shadow: 0 0 0 2px rgba(171, 246, 0, 0.2);
+  background-color: white;
+}
+
+.sign-box button {
+  background-color: #abf600;
+  color: #191f36;
+  border: none;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.sign-box button:hover {
+  background-color: #95d800;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.sign-box button:active {
+  transform: translateY(0);
+}
+
+.sign-box .gn {
+  margin-top: 1.5rem;
+  text-align: center;
+  color: #fff;
+  font-weight: 500;
+}
+
+.sign-box .gn a {
+  color: #abf600;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 5px;
+  transition: all 0.2s ease;
+}
+
+.sign-box .gn a:hover {
+  text-decoration: underline;
+  text-shadow: 0 0 5px rgba(171, 246, 0, 0.3);
+}
+
+.error-message {
+  color: #ff3333;
+  font-size: 14px;
+  margin-top: -12px;
+  margin-bottom: 12px;
+  display: none;
+  font-weight: 500;
+  background-color: rgba(255, 51, 51, 0.1);
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+/* Welcome Message for Logged In Users */
+.welcome-message {
+  text-align: center;
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.welcome-message h2 {
+  color: #abf600;
+  margin-bottom: 1rem;
+}
+
+.welcome-message p {
+  color: #fff;
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+}
+
+.primary-btn, .secondary-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.primary-btn {
+  background-color: #abf600;
+  color: #191f36;
+  border: none;
+}
+
+.primary-btn:hover {
+  background-color: #95d800;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.secondary-btn {
+  background-color: transparent;
+  color: #abf600;
+  border: 2px solid #abf600;
+}
+
+.secondary-btn:hover {
+  background-color: rgba(171, 246, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading indicator for API calls */
+.loading {
+  display: none;
+  margin-left: 8px;
+}
+
+.loading i {
+  animation: spin 1s linear infinite;
+  color: #191f36;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Status message styling */
+.status-message {
+  padding: 10px 15px;
+  margin-top: 15px;
+  border-radius: 8px;
+  text-align: center;
+  display: none;
+  font-weight: 500;
+}
+
+.status-message.success {
+  background-color: rgba(171, 246, 0, 0.2);
+  color: #abf600;
+  border: 1px solid rgba(171, 246, 0, 0.3);
+}
+
+.status-message.error {
+  background-color: rgba(255, 51, 51, 0.2);
+  color: #ff3333;
+  border: 1px solid rgba(255, 51, 51, 0.3);
+}
+
+/* Fix for sign heading */
+.sign .heading {
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 30px;
+}
+
+.sign .heading span {
+  color: #abf600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sign-container {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .sign-box {
+    padding: 1.5rem;
+    margin: 10px 0;
+    max-width: 90%;
+  }
+} 
