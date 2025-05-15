@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>WerTigo - Ticket Tracker</title>
+
+    <!-- FONT AWESOME -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" class="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Main CSS-->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Tracker CSS -->
+    <link rel="stylesheet" href="css/tracker.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body class="bdy">
+    <section class="index" id="index">
+        <header class="header">
+            <a href="index.html" class="logo" id="menu"><img src="images/LOGO.png" class="log"><span> WerTigo </span></a>
+           
+            <i class="fa-solid fa-bars" id="menu-icon"></i>
+            <nav class="navbar">
+               <a href="http://localhost:8000/Client/home.html"><span>Home </span></a>
+               <a href="http://localhost:8000/Client/home.html#about"> <span>About us</span></a>
+               <a href="http://localhost:8000/Client/index.html"> <span>Wertigo AI</span> </a>
+        
+            </nav>
+        </header>
+    </section>
+
+    <section class="tracker-section">
+        <h2 class="tracker-title">Travel Ticket Tracker</h2>
+        
+        <div class="tracker-container">
+            <div class="tracker-form">
+                <h2>Track Your Ticket</h2>
+                <p>Enter your ticket ID to view your travel details and status.</p>
+                
+                <div class="form-group">
+                    <label for="ticketIdInput">Ticket ID</label>
+                    <input type="text" id="ticketIdInput" placeholder="Enter your ticket ID (e.g., WTO-ABC123)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="emailInput">Email Address (optional)</label>
+                    <input type="email" id="emailInput" placeholder="Enter your email">
+                </div>
+                
+                <button class="tracker-btn" id="searchButton">
+                    <i class="fas fa-search"></i> Track Ticket
+                </button>
+                
+                <div class="status-message error" id="errorMessage"></div>
+                <div class="status-message success" id="successMessage"></div>
+                
+                <div class="form-group form-group-mt">
+                    <h3>Find All Your Tickets</h3>
+                    <label for="emailListInput">Email Address</label>
+                    <input type="email" id="emailListInput" placeholder="Enter your email address">
+                </div>
+                
+                <button class="tracker-btn" id="listButton">
+                    <i class="fas fa-list"></i> View All Tickets
+                </button>
+                
+                <div class="status-message error" id="listErrorMessage"></div>
+            </div>
+            
+            <div class="results-container">
+                <div id="ticketList">
+                    <h3>Your Travel Tickets</h3>
+                    <div id="ticketCards"></div>
+                </div>
+                
+                <div id="ticketDetails">
+                    <div class="ticket-header">
+                        <div class="ticket-id" id="displayTicketId">WTO-ABC123</div>
+                        <div class="ticket-status status-active" id="displayStatus">Active</div>
+                    </div>
+                    
+                    <div class="ticket-info">
+                        <div class="info-item">
+                            <div class="info-label">Destination</div>
+                            <div class="info-value" id="displayDestination">Palawan, Philippines</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Travel Dates</div>
+                            <div class="info-value" id="displayDates">Jun 15, 2023 - Jun 20, 2023</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Number of Travelers</div>
+                            <div class="info-value" id="displayTravelers">2</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Budget</div>
+                            <div class="info-value" id="displayBudget">₱15,000</div>
+                        </div>
+                    </div>
+                    
+                    <div id="mapContainer" class="map-container"></div>
+                    
+                    <h3 class="itinerary-heading">Itinerary</h3>
+                    <div id="itineraryContainer">
+                        <!-- Itinerary content will be populated here -->
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-button print-button" id="printButton">
+                            <i class="fas fa-print"></i> Print Ticket
+                        </button>
+                        <button class="action-button delete-button" id="deleteButton">
+                            <i class="fas fa-trash-alt"></i> Delete Ticket
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="no-results" id="noResults">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>Enter your ticket ID or email address to track your travel plans.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        // DOM Elements
+        const searchButton = document.getElementById('searchButton');
+        const ticketIdInput = document.getElementById('ticketIdInput');
+        const emailInput = document.getElementById('emailInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const ticketDetails = document.getElementById('ticketDetails');
+        const noResults = document.getElementById('noResults');
+        
+        const listButton = document.getElementById('listButton');
+        const emailListInput = document.getElementById('emailListInput');
+        const listErrorMessage = document.getElementById('listErrorMessage');
+        const ticketList = document.getElementById('ticketList');
+        const ticketCards = document.getElementById('ticketCards');
+        
+        const printButton = document.getElementById('printButton');
+        const deleteButton = document.getElementById('deleteButton');
+        
+        // API endpoint URL
+        const API_URL = 'http://localhost:5000/api';
+
+        // Hide UI elements initially
+        errorMessage.style.display = 'none';
+        successMessage.style.display = 'none';
+        ticketDetails.style.display = 'none';
+        ticketList.style.display = 'none';
+        listErrorMessage.style.display = 'none';
+        
+        // Search for a ticket
+        searchButton.addEventListener('click', async () => {
+            const ticketId = ticketIdInput.value.trim();
+            const email = emailInput.value.trim();
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            ticketDetails.style.display = 'none';
+            ticketList.style.display = 'none';
+            noResults.style.display = 'flex';
+            
+            if (!ticketId) {
+                errorMessage.textContent = 'Please enter a ticket ID.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            try {
+                // For demo purposes, show the ticket details directly
+                // In a real application, you would fetch this from the server
+                
+                // Mock ticket data
+                const ticketData = {
+                    ticket_id: ticketId,
+                    status: 'active',
+                    destination: 'Palawan, Philippines',
+                    travel_dates: 'Jun 15, 2023 - Jun 20, 2023',
+                    travelers: 2,
+                    budget: '₱15,000',
+                    itinerary: [
+                        {
+                            day: 1,
+                            places: [
+                                {
+                                    name: 'Puerto Princesa Underground River',
+                                    category: 'Natural Wonder',
+                                    rating: 4.8,
+                                    description: 'A UNESCO World Heritage Site and one of the New 7 Wonders of Nature. Take a boat tour through the spectacular underground river.'
+                                },
+                                {
+                                    name: 'Baker\'s Hill',
+                                    category: 'Food',
+                                    rating: 4.2,
+                                    description: 'A popular spot known for its delicious baked goods and beautiful garden setting.'
+                                }
+                            ],
+                            meals: [
+                                { type: 'Breakfast', suggestion: 'Hotel buffet' },
+                                { type: 'Lunch', suggestion: 'Seafood at Badjao Seafront Restaurant' },
+                                { type: 'Dinner', suggestion: 'Local cuisine at Ka Lui Restaurant' }
+                            ],
+                            transportation: 'Private van transfer from airport to hotel and tour sites',
+                            estimated_cost: '₱3,500 per person'
+                        },
+                        {
+                            day: 2,
+                            places: [
+                                {
+                                    name: 'Honda Bay Island Hopping',
+                                    category: 'Island Adventure',
+                                    rating: 4.5,
+                                    description: 'Visit multiple islands including Starfish Island, Luli Island, and Cowrie Island.'
+                                }
+                            ],
+                            meals: [
+                                { type: 'Breakfast', suggestion: 'Hotel buffet' },
+                                { type: 'Lunch', suggestion: 'Picnic lunch on the island' },
+                                { type: 'Dinner', suggestion: 'Kinabuchs Grill & Bar' }
+                            ],
+                            transportation: 'Arranged transport to and from Honda Bay',
+                            estimated_cost: '₱2,800 per person'
+                        }
+                    ]
+                };
+                
+                // Show success message
+                successMessage.textContent = 'Ticket found!';
+                successMessage.style.display = 'block';
+                
+                // Hide no results message
+                noResults.style.display = 'none';
+                
+                // Display ticket details
+                displayTicketDetails(ticketData);
+                
+            } catch (error) {
+                console.error('Error fetching ticket:', error);
+                errorMessage.textContent = 'An error occurred while fetching the ticket. Please try again.';
+                errorMessage.style.display = 'block';
+            }
+        });
+        
+        // Function to display ticket details
+        function displayTicketDetails(ticket) {
+            // Show the ticket details section
+            ticketDetails.style.display = 'block';
+            
+            // Set ticket ID and status
+            document.getElementById('displayTicketId').textContent = ticket.ticket_id;
+            
+            const statusElement = document.getElementById('displayStatus');
+            statusElement.textContent = ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1);
+            
+            // Remove all status classes
+            statusElement.className = 'ticket-status';
+            // Add specific status class
+            statusElement.classList.add(`status-${ticket.status.toLowerCase()}`);
+            
+            // Set trip details
+            document.getElementById('displayDestination').textContent = ticket.destination || 'Not specified';
+            document.getElementById('displayDates').textContent = ticket.travel_dates || 'Not specified';
+            document.getElementById('displayTravelers').textContent = ticket.travelers || '1';
+            // Format budget with peso sign
+            document.getElementById('displayBudget').textContent = formatPesoCurrency(ticket.budget || '0');
+            
+            // Display itinerary
+            displayItinerary(ticket);
+            
+            // Initialize map
+            initializeMap(ticket);
+            
+            // Store ticket ID and email for delete operation
+            deleteButton.setAttribute('data-ticket-id', ticket.ticket_id);
+            deleteButton.setAttribute('data-email', emailInput.value.trim());
+        }
+        
+        // Function to display itinerary
+        function displayItinerary(trip) {
+            const itineraryContainer = document.getElementById('itineraryContainer');
+            itineraryContainer.innerHTML = '';
+            
+            if (trip && trip.itinerary && trip.itinerary.length > 0) {
+                trip.itinerary.forEach(day => {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'day-container';
+                    
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'day-header';
+                    dayHeader.textContent = `Day ${day.day}`;
+                    dayElement.appendChild(dayHeader);
+                    
+                    // Places section
+                    const placesHeader = document.createElement('h4');
+                    placesHeader.className = 'section-header';
+                    placesHeader.textContent = 'Places to Visit';
+                    dayElement.appendChild(placesHeader);
+                    
+                    const placesList = document.createElement('ul');
+                    placesList.className = 'day-places';
+                    
+                    if (day.places && day.places.length > 0) {
+                        day.places.forEach(place => {
+                            const placeItem = document.createElement('li');
+                            placeItem.className = 'place-item';
+                            
+                            const placeName = document.createElement('span');
+                            placeName.className = 'place-name';
+                            placeName.textContent = place.name;
+                            
+                            const placeCategory = document.createElement('span');
+                            placeCategory.className = 'place-category';
+                            placeCategory.textContent = place.category;
+                            
+                            // Add rating stars if available
+                            let starRating = '';
+                            if (place.rating) {
+                                const fullStars = Math.floor(place.rating);
+                                const emptyStars = 5 - fullStars;
+                                starRating = '★'.repeat(fullStars) + '☆'.repeat(emptyStars);
+                            }
+                            
+                            const ratingElement = document.createElement('div');
+                            ratingElement.className = 'place-rating';
+                            ratingElement.textContent = starRating;
+                            
+                            // Add description if available
+                            const descElement = document.createElement('div');
+                            descElement.className = 'place-description';
+                            if (place.description) {
+                                descElement.textContent = place.description;
+                            }
+                            
+                            placeItem.appendChild(placeName);
+                            placeItem.appendChild(placeCategory);
+                            if (starRating) placeItem.appendChild(ratingElement);
+                            if (place.description) placeItem.appendChild(descElement);
+                            
+                            placesList.appendChild(placeItem);
+                        });
+                    } else {
+                        const noPlaces = document.createElement('li');
+                        noPlaces.textContent = 'No activities planned for this day.';
+                        placesList.appendChild(noPlaces);
+                    }
+                    
+                    dayElement.appendChild(placesList);
+                    
+                    // Meals section
+                    if (day.meals && day.meals.length > 0) {
+                        const mealsHeader = document.createElement('h4');
+                        mealsHeader.className = 'section-header';
+                        mealsHeader.textContent = 'Meals';
+                        dayElement.appendChild(mealsHeader);
+                        
+                        const mealsList = document.createElement('ul');
+                        mealsList.className = 'day-meals';
+                        
+                        day.meals.forEach(meal => {
+                            const mealItem = document.createElement('li');
+                            mealItem.className = 'meal-item';
+                            
+                            const mealType = document.createElement('span');
+                            mealType.className = 'meal-type';
+                            mealType.textContent = meal.type;
+                            
+                            const mealSuggestion = document.createElement('span');
+                            mealSuggestion.className = 'meal-suggestion';
+                            mealSuggestion.textContent = meal.suggestion;
+                            
+                            mealItem.appendChild(mealType);
+                            mealItem.appendChild(document.createElement('br'));
+                            mealItem.appendChild(mealSuggestion);
+                            mealsList.appendChild(mealItem);
+                        });
+                        
+                        dayElement.appendChild(mealsList);
+                    }
+                    
+                    // Transportation section
+                    if (day.transportation) {
+                        const transportHeader = document.createElement('h4');
+                        transportHeader.className = 'section-header';
+                        transportHeader.textContent = 'Transportation';
+                        dayElement.appendChild(transportHeader);
+                        
+                        const transportInfo = document.createElement('p');
+                        transportInfo.className = 'transportation-info';
+                        transportInfo.textContent = day.transportation;
+                        dayElement.appendChild(transportInfo);
+                    }
+                    
+                    // Estimated cost section
+                    if (day.estimated_cost) {
+                        const costHeader = document.createElement('h4');
+                        costHeader.className = 'section-header';
+                        costHeader.textContent = 'Estimated Cost';
+                        dayElement.appendChild(costHeader);
+                        
+                        const costInfo = document.createElement('p');
+                        costInfo.className = 'cost-info';
+                        
+                        // Remove any existing currency symbols and ensure peso symbol is used
+                        let costText = day.estimated_cost.toString().replace(/[$₱]/g, '');
+                        costInfo.textContent = costText; // Without currency symbol - will be added by CSS
+                        
+                        dayElement.appendChild(costInfo);
+                    }
+                    
+                    // View route button
+                    const routeButton = document.createElement('button');
+                    routeButton.className = 'view-route-btn';
+                    routeButton.textContent = 'View Route on Map';
+                    routeButton.dataset.day = day.day;
+                    dayElement.appendChild(routeButton);
+                    
+                    itineraryContainer.appendChild(dayElement);
+                });
+            } else {
+                itineraryContainer.innerHTML = '<p>No itinerary information available.</p>';
+            }
+            
+            // Add event listeners to View Route buttons
+            const routeButtons = document.querySelectorAll('.view-route-btn');
+            routeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.getElementById('mapContainer').scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+        }
+        
+        // Get list of tickets by email
+        listButton.addEventListener('click', () => {
+            const email = emailListInput.value.trim();
+            
+            // Clear previous messages and content
+            listErrorMessage.style.display = 'none';
+            ticketDetails.style.display = 'none';
+            noResults.style.display = 'none';
+            
+            if (!email) {
+                listErrorMessage.textContent = 'Please enter your email address.';
+                listErrorMessage.style.display = 'block';
+                return;
+            }
+            
+            // For demo purposes, show a mock list of tickets
+            const mockTickets = [
+                {
+                    ticket_id: 'WTO-123456',
+                    status: 'active',
+                    destination: 'Palawan, Philippines',
+                    travel_dates: 'Jun 15, 2023 - Jun 20, 2023',
+                    days_until_trip: 45
+                },
+                {
+                    ticket_id: 'WTO-789012',
+                    status: 'completed',
+                    destination: 'Boracay, Philippines',
+                    travel_dates: 'Mar 10, 2023 - Mar 15, 2023'
+                }
+            ];
+            
+            // Show the ticket list
+            ticketList.style.display = 'block';
+            
+            // Display list of tickets
+            displayTicketList(mockTickets, email);
+        });
+        
+        // Function to display list of tickets
+        function displayTicketList(tickets, email) {
+            ticketCards.innerHTML = '';
+            
+            if (tickets && tickets.length > 0) {
+                tickets.forEach(ticket => {
+                    const card = document.createElement('div');
+                    card.className = 'ticket-card';
+                    card.addEventListener('click', () => {
+                        // Fill in the search form
+                        ticketIdInput.value = ticket.ticket_id;
+                        emailInput.value = email;
+                        
+                        // Trigger the search
+                        searchButton.click();
+                    });
+                    
+                    const header = document.createElement('div');
+                    header.className = 'ticket-card-header';
+                    
+                    const id = document.createElement('div');
+                    id.className = 'card-ticket-id';
+                    id.textContent = ticket.ticket_id;
+                    
+                    const status = document.createElement('div');
+                    status.className = `card-status status-${ticket.status.toLowerCase()}`;
+                    status.textContent = ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1);
+                    
+                    header.appendChild(id);
+                    header.appendChild(status);
+                    
+                    const destination = document.createElement('div');
+                    destination.className = 'card-destination';
+                    destination.textContent = ticket.destination || 'Unknown Destination';
+                    
+                    const dates = document.createElement('div');
+                    dates.className = 'card-dates';
+                    dates.textContent = ticket.travel_dates || 'Dates not specified';
+                    
+                    card.appendChild(header);
+                    card.appendChild(destination);
+                    card.appendChild(dates);
+                    
+                    // Add "days until trip" if available
+                    if (ticket.days_until_trip !== undefined) {
+                        const countdown = document.createElement('div');
+                        countdown.className = 'trip-countdown';
+                        countdown.textContent = ticket.days_until_trip === 0 
+                            ? 'Today!' 
+                            : `${ticket.days_until_trip} days until your trip!`;
+                        card.appendChild(countdown);
+                    }
+                    
+                    ticketCards.appendChild(card);
+                });
+            } else {
+                // No tickets found
+                ticketCards.innerHTML = `
+                    <div class="no-tickets">
+                        <p>No tickets found for this email address.</p>
+                        <p>Try creating a new trip first!</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Print ticket
+        printButton.addEventListener('click', () => {
+            window.print();
+        });
+        
+        // Delete ticket
+        deleteButton.addEventListener('click', () => {
+            const ticketId = deleteButton.getAttribute('data-ticket-id');
+            
+            if (!ticketId) return;
+            
+            if (confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
+                // For demo purposes, just show a success message
+                successMessage.textContent = 'Ticket successfully deleted.';
+                successMessage.style.display = 'block';
+                ticketDetails.style.display = 'none';
+                noResults.style.display = 'flex';
+                
+                // Clear inputs
+                ticketIdInput.value = '';
+            }
+        });
+
+        // Function to initialize map (basic version for initial display)
+        function initializeMap(trip) {
+            // Default location (Philippines)
+            let centerLat = 12.8797;
+            let centerLng = 121.7740;
+            let zoomLevel = 6;
+            
+            // Check for existing map instance and remove it
+            if (window.ticketMap) {
+                window.ticketMap.remove();
+            }
+            
+            // Create new map
+            window.ticketMap = L.map('mapContainer').setView([centerLat, centerLng], zoomLevel);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: 'Map data © OpenStreetMap contributors'
+            }).addTo(window.ticketMap);
+            
+            // For demo purposes, add a marker for Palawan
+            if (trip.destination.includes('Palawan')) {
+                const palawaLat = 10.1542;
+                const palawaLng = 118.9076;
+                L.marker([palawaLat, palawaLng])
+                    .addTo(window.ticketMap)
+                    .bindPopup(`<b>Palawan</b><br>Your destination`);
+                
+                window.ticketMap.setView([palawaLat, palawaLng], 9);
+            }
+        }
+
+        // Function to format currency
+        window.formatPesoCurrency = function(amount) {
+            // Remove existing currency symbols
+            let cleanAmount = amount.toString().replace(/[$₱]/g, '');
+            
+            // Add peso sign
+            return '₱' + cleanAmount;
+        };
+    </script>
+</body>
+</html> 
