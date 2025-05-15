@@ -7,25 +7,31 @@ body, html {
     height: 100%;
     overflow-x: hidden;
     scroll-behavior: smooth;
+    box-sizing: border-box;
 }
 
 .bdy {
-    padding-top: 0;
+    padding-top: 80px;
     background-color: #003153;
     background-image: linear-gradient(315deg, #003153 0%, #0abab5 74%);
     min-height: 100vh;
     position: relative;
     margin: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Main tracker section styling */
 .tracker-section {
-    min-height: 100vh;
-    padding: 10rem 9% 2rem;
+    min-height: calc(100vh - 80px);
+    padding: 2rem 9% 2rem;
     background: #0f1a36;
     color: #fff;
     position: relative;
     z-index: 1;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .tracker-title {
@@ -44,6 +50,8 @@ body, html {
     justify-content: space-between;
     gap: 2rem;
     margin-top: 3rem;
+    padding-right: 5px;
+    margin-right: -5px;
 }
 
 /* Form styling */
@@ -164,6 +172,9 @@ body, html {
     min-height: 500px;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    max-height: 80vh;
+    box-sizing: border-box;
 }
 
 .no-results {
@@ -625,6 +636,9 @@ body, html {
 /* Enhanced itinerary styles */
 #itineraryContainer {
     margin-top: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
 .itinerary-heading {
@@ -921,15 +935,7 @@ body, html {
     background-color: rgba(0, 49, 83, 0.9);
     backdrop-filter: blur(10px);
     z-index: 100;
-}
-
-/* Add additional padding to the body to account for fixed header */
-.bdy {
-    padding-top: 80px;
-    background-color: #003153;
-    background-image: linear-gradient(315deg, #003153 0%, #0abab5 74%);
-    min-height: 100vh;
-    position: relative;
+    box-sizing: border-box;
 }
 
 /* Add spacing for paragraphs in the search form */
@@ -949,11 +955,13 @@ body, html {
     margin: 0;
     padding: 0;
     height: 100%;
+    overflow-x: hidden;
 }
 
 section {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 
 /* Responsive adjustments for the improved layout */
@@ -1144,26 +1152,6 @@ section {
     transform: translateY(-2px);
 }
 
-/* Fix the section and header to ensure they don't push content down too far */
-.index {
-    min-height: 0;
-    position: relative;
-    z-index: 20;
-    background: transparent;
-}
-
-/* Header styles */
-.header {
-    position: fixed;
-    width: 100%;
-    top: 0;
-    left: 0;
-    padding: 1.5rem 9%;
-    background-color: rgba(0, 49, 83, 0.9);
-    backdrop-filter: blur(10px);
-    z-index: 100;
-}
-
 /* Responsive styles */
 @media (max-width: 991px) {
     .tracker-container {
@@ -1173,5 +1161,67 @@ section {
     .tracker-form, .results-container {
         flex: 0 0 100%;
         width: 100%;
+        max-height: none;
     }
+    
+    .bdy {
+        padding-top: 70px;
+    }
+    
+    .tracker-section {
+        min-height: calc(100vh - 70px);
+    }
+}
+
+/* Add proper scrollbar styling */
+body::-webkit-scrollbar,
+.results-container::-webkit-scrollbar,
+#itineraryContainer::-webkit-scrollbar {
+    width: 10px;
+}
+
+body::-webkit-scrollbar-track,
+.results-container::-webkit-scrollbar-track,
+#itineraryContainer::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb,
+.results-container::-webkit-scrollbar-thumb,
+#itineraryContainer::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+.results-container::-webkit-scrollbar-thumb:hover,
+#itineraryContainer::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+#itineraryContainer {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Ensure content doesn't get cut off by scrollbars */
+.tracker-container {
+    padding-right: 5px;
+    margin-right: -5px;
+}
+
+/* Make sure the tracker section doesn't cause overflow */
+.tracker-section {
+    overflow-x: hidden;
+}
+
+/* Ensure the map container doesn't push content too far */
+.map-container {
+    height: 300px;
+    width: 100%;
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
 } 

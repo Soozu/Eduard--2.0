@@ -19,19 +19,16 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 </head>
 <body class="bdy">
-    <section class="index" id="index">
-        <header class="header">
-            <a href="index.html" class="logo" id="menu"><img src="images/LOGO.png" class="log"><span> WerTigo </span></a>
-           
-            <i class="fa-solid fa-bars" id="menu-icon"></i>
-            <nav class="navbar">
-               <a href="http://localhost:8000/Client/home.html"><span>Home </span></a>
-               <a href="http://localhost:8000/Client/home.html#about"> <span>About us</span></a>
-               <a href="http://localhost:8000/Client/index.html"> <span>Wertigo AI</span> </a>
-        
-            </nav>
-        </header>
-    </section>
+    <header class="header">
+        <a href="index.html" class="logo" id="menu"><img src="images/LOGO.png" class="log"><span> WerTigo </span></a>
+       
+        <i class="fa-solid fa-bars" id="menu-icon"></i>
+        <nav class="navbar">
+           <a href="http://localhost:8000/Client/home.html"><span>Home </span></a>
+           <a href="http://localhost:8000/Client/home.html#about"> <span>About us</span></a>
+           <a href="http://localhost:8000/Client/index.html"> <span>Wertigo AI</span> </a>
+        </nav>
+    </header>
 
     <section class="tracker-section">
         <h2 class="tracker-title">Travel Ticket Tracker</h2>
@@ -178,62 +175,21 @@
             }
             
             try {
-                // For demo purposes, show the ticket details directly
-                // In a real application, you would fetch this from the server
+                // Fetch ticket data from API
+                let apiUrl = `${API_URL}/tickets/${ticketId}`;
+                if (email) {
+                    apiUrl += `?email=${encodeURIComponent(email)}`;
+                }
                 
-                // Mock ticket data
-                const ticketData = {
-                    ticket_id: ticketId,
-                    status: 'active',
-                    destination: 'Palawan, Philippines',
-                    travel_dates: 'Jun 15, 2023 - Jun 20, 2023',
-                    travelers: 2,
-                    budget: '₱15,000',
-                    itinerary: [
-                        {
-                            day: 1,
-                            places: [
-                                {
-                                    name: 'Puerto Princesa Underground River',
-                                    category: 'Natural Wonder',
-                                    rating: 4.8,
-                                    description: 'A UNESCO World Heritage Site and one of the New 7 Wonders of Nature. Take a boat tour through the spectacular underground river.'
-                                },
-                                {
-                                    name: 'Baker\'s Hill',
-                                    category: 'Food',
-                                    rating: 4.2,
-                                    description: 'A popular spot known for its delicious baked goods and beautiful garden setting.'
-                                }
-                            ],
-                            meals: [
-                                { type: 'Breakfast', suggestion: 'Hotel buffet' },
-                                { type: 'Lunch', suggestion: 'Seafood at Badjao Seafront Restaurant' },
-                                { type: 'Dinner', suggestion: 'Local cuisine at Ka Lui Restaurant' }
-                            ],
-                            transportation: 'Private van transfer from airport to hotel and tour sites',
-                            estimated_cost: '₱3,500 per person'
-                        },
-                        {
-                            day: 2,
-                            places: [
-                                {
-                                    name: 'Honda Bay Island Hopping',
-                                    category: 'Island Adventure',
-                                    rating: 4.5,
-                                    description: 'Visit multiple islands including Starfish Island, Luli Island, and Cowrie Island.'
-                                }
-                            ],
-                            meals: [
-                                { type: 'Breakfast', suggestion: 'Hotel buffet' },
-                                { type: 'Lunch', suggestion: 'Picnic lunch on the island' },
-                                { type: 'Dinner', suggestion: 'Kinabuchs Grill & Bar' }
-                            ],
-                            transportation: 'Arranged transport to and from Honda Bay',
-                            estimated_cost: '₱2,800 per person'
-                        }
-                    ]
-                };
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch ticket');
+                }
+                
+                const data = await response.json();
+                const ticket = data.ticket;
                 
                 // Show success message
                 successMessage.textContent = 'Ticket found!';
@@ -242,12 +198,23 @@
                 // Hide no results message
                 noResults.style.display = 'none';
                 
+                // Create a ticket data object for display
+                const ticketData = {
+                    ticket_id: ticket.ticket_id,
+                    status: ticket.status,
+                    destination: ticket.destination || 'Not specified',
+                    travel_dates: ticket.travel_dates || 'Not specified',
+                    travelers: ticket.trip?.travelers || 1,
+                    budget: ticket.trip?.budget || '₱0',
+                    itinerary: ticket.trip?.itinerary || []
+                };
+                
                 // Display ticket details
                 displayTicketDetails(ticketData);
                 
             } catch (error) {
                 console.error('Error fetching ticket:', error);
-                errorMessage.textContent = 'An error occurred while fetching the ticket. Please try again.';
+                errorMessage.textContent = error.message || 'An error occurred while fetching the ticket. Please try again.';
                 errorMessage.style.display = 'block';
             }
         });
@@ -441,7 +408,7 @@
         }
         
         // Get list of tickets by email
-        listButton.addEventListener('click', () => {
+        listButton.addEventListener('click', async () => {
             const email = emailListInput.value.trim();
             
             // Clear previous messages and content
@@ -455,28 +422,30 @@
                 return;
             }
             
-            // For demo purposes, show a mock list of tickets
-            const mockTickets = [
-                {
-                    ticket_id: 'WTO-123456',
-                    status: 'active',
-                    destination: 'Palawan, Philippines',
-                    travel_dates: 'Jun 15, 2023 - Jun 20, 2023',
-                    days_until_trip: 45
-                },
-                {
-                    ticket_id: 'WTO-789012',
-                    status: 'completed',
-                    destination: 'Boracay, Philippines',
-                    travel_dates: 'Mar 10, 2023 - Mar 15, 2023'
+            try {
+                // Fetch tickets from API
+                const apiUrl = `${API_URL}/tickets?email=${encodeURIComponent(email)}`;
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch tickets');
                 }
-            ];
-            
-            // Show the ticket list
-            ticketList.style.display = 'block';
-            
-            // Display list of tickets
-            displayTicketList(mockTickets, email);
+                
+                const data = await response.json();
+                const tickets = data.tickets || [];
+                
+                // Show the ticket list
+                ticketList.style.display = 'block';
+                
+                // Display list of tickets
+                displayTicketList(tickets, email);
+                
+            } catch (error) {
+                console.error('Error fetching tickets:', error);
+                listErrorMessage.textContent = error.message || 'An error occurred while fetching your tickets.';
+                listErrorMessage.style.display = 'block';
+            }
         });
         
         // Function to display list of tickets
@@ -551,20 +520,44 @@
         });
         
         // Delete ticket
-        deleteButton.addEventListener('click', () => {
+        deleteButton.addEventListener('click', async () => {
             const ticketId = deleteButton.getAttribute('data-ticket-id');
+            const email = deleteButton.getAttribute('data-email');
             
             if (!ticketId) return;
             
             if (confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
-                // For demo purposes, just show a success message
-                successMessage.textContent = 'Ticket successfully deleted.';
-                successMessage.style.display = 'block';
-                ticketDetails.style.display = 'none';
-                noResults.style.display = 'flex';
-                
-                // Clear inputs
-                ticketIdInput.value = '';
+                try {
+                    // Delete ticket via API
+                    const apiUrl = `${API_URL}/tickets/${ticketId}/delete`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email: email })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to delete ticket');
+                    }
+                    
+                    // Show success message
+                    successMessage.textContent = 'Ticket successfully deleted.';
+                    successMessage.style.display = 'block';
+                    ticketDetails.style.display = 'none';
+                    noResults.style.display = 'flex';
+                    
+                    // Clear inputs
+                    ticketIdInput.value = '';
+                    
+                } catch (error) {
+                    console.error('Error deleting ticket:', error);
+                    errorMessage.textContent = error.message || 'An error occurred while deleting the ticket.';
+                    errorMessage.style.display = 'block';
+                }
             }
         });
 
