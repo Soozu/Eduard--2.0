@@ -15,9 +15,15 @@ logger = logging.getLogger('email_service')
 # Email configuration
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
+<<<<<<< HEAD:utils/email_service.py
 EMAIL_USER = 'christianpacifico20@gmail.com'
 EMAIL_PASSWORD = 'deoqsfkuocmczvzk'
 EMAIL_FROM = 'WeTravel@gmail.com'
+=======
+EMAIL_USER = 'email'
+EMAIL_PASSWORD = 'app password'
+EMAIL_FROM = 'name of sender'
+>>>>>>> 85d9a072014415bf7488f6d252102d861fb69a2f:email_service.py
 
 def send_ticket_email(recipient_email, ticket_id, travel_data):
     """
